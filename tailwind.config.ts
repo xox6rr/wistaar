@@ -57,6 +57,25 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Wistaar custom colors
+        ivory: "hsl(var(--ivory))",
+        cream: "hsl(var(--cream))",
+        sage: "hsl(var(--sage))",
+        "sage-light": "hsl(var(--sage-light))",
+        charcoal: "hsl(var(--charcoal))",
+        stone: "hsl(var(--stone))",
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['Playfair Display', 'Georgia', 'serif'],
+      },
+      fontSize: {
+        'display': ['4rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+        'display-sm': ['3rem', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
+        'heading': ['2rem', { lineHeight: '1.25', letterSpacing: '-0.01em' }],
+        'subheading': ['1.25rem', { lineHeight: '1.4' }],
+        'body': ['1.0625rem', { lineHeight: '1.7' }],
+        'caption': ['0.875rem', { lineHeight: '1.5' }],
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,25 +84,31 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-up": {
+          from: { opacity: "0", transform: "translateY(16px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-up": "fade-up 0.6s ease-out forwards",
+        "fade-in": "fade-in 0.5s ease-out forwards",
+      },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
       },
     },
   },
