@@ -17,7 +17,7 @@ const Navigation = () => {
           <div className="hidden md:flex items-center gap-8">
             <Link 
               to="/explore" 
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+              className="text-sm text-foreground hover:text-primary transition-colors duration-200"
             >
               Explore
             </Link>
