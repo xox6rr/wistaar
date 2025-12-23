@@ -5,23 +5,24 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 rounded-md",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md",
-        outline: "border border-border bg-transparent hover:bg-secondary hover:text-secondary-foreground rounded-md",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md",
-        ghost: "hover:bg-secondary hover:text-secondary-foreground rounded-md",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg shadow-soft hover:shadow-medium",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg",
+        outline: "border-2 border-border bg-transparent hover:bg-accent hover:border-primary/20 text-foreground rounded-lg",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg",
+        ghost: "hover:bg-accent hover:text-accent-foreground rounded-lg",
         link: "text-foreground underline-offset-4 hover:underline",
         // Wistaar custom variants
-        editorial: "bg-foreground text-background hover:bg-foreground/90 font-medium tracking-wide rounded-md",
-        subtle: "bg-accent text-accent-foreground hover:bg-accent/70 font-medium rounded-md",
+        editorial: "bg-foreground text-background hover:bg-foreground/90 font-medium tracking-wide rounded-lg",
+        subtle: "bg-accent text-accent-foreground hover:bg-accent/70 font-medium rounded-lg border border-primary/10",
         text: "text-foreground hover:text-primary underline-offset-4 hover:underline font-medium",
+        premium: "bg-gradient-to-r from-gold to-gold-light text-foreground font-medium rounded-lg shadow-soft hover:shadow-medium",
       },
       size: {
-        default: "h-10 px-5 py-2",
+        default: "h-11 px-6 py-2",
         sm: "h-9 px-4 text-xs",
         lg: "h-12 px-8 text-base",
         xl: "h-14 px-10 text-base font-medium",
