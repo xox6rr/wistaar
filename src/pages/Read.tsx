@@ -15,7 +15,7 @@ import {
   BookmarkCheck,
   Trash2,
   Highlighter,
-  Quote
+  Search
 } from "lucide-react";
 import {
   Sheet,
@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { useBookmarks, Bookmark as BookmarkType } from "@/hooks/useBookmarks";
 import { useToast } from "@/hooks/use-toast";
+import BookSearch from "@/components/BookSearch";
 
 export default function Read() {
   const { id } = useParams<{ id: string }>();
@@ -71,6 +72,7 @@ export default function Read() {
     visible: boolean;
   }>({ x: 0, y: 0, visible: false });
   const [highlightNote, setHighlightNote] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   
   // Determine current chapter - use URL param if set, otherwise use saved progress
   const currentChapterIndex = chapterParam 
@@ -284,6 +286,18 @@ export default function Read() {
           </div>
 
           <div className="flex items-center gap-1">
+            {/* Search Button */}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchOpen(true);
+              }}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+
             {/* Font Size Controls */}
             <div className="hidden sm:flex items-center gap-1 mr-2">
               <Button 
@@ -631,6 +645,13 @@ export default function Read() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Book Search */}
+      <BookSearch 
+        book={book} 
+        isOpen={searchOpen} 
+        onClose={() => setSearchOpen(false)} 
+      />
     </div>
   );
 }
