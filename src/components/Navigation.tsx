@@ -1,7 +1,17 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { LogOut } from "lucide-react";
 
 const Navigation = () => {
+  const { user, signOut, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/50">
       <nav className="container-editorial">
@@ -43,12 +53,37 @@ const Navigation = () => {
 
           {/* Auth */}
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-              Sign in
-            </Button>
-            <Button variant="editorial" size="sm">
-              Get Started
-            </Button>
+            {loading ? (
+              <div className="h-9 w-20 bg-muted animate-pulse rounded" />
+            ) : user ? (
+              <>
+                <span className="hidden sm:inline text-sm text-muted-foreground">
+                  {user.email}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleSignOut}
+                  className="gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign out</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+                    Sign in
+                  </Button>
+                </Link>
+                <Link to="/auth">
+                  <Button variant="editorial" size="sm">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
