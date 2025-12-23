@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
+import PageSkeleton from "./PageSkeleton";
 
 interface PageTransitionProps {
   children: ReactNode;
+  showSkeleton?: boolean;
 }
 
 const pageVariants = {
@@ -26,7 +28,31 @@ const pageTransition = {
   duration: 0.4,
 };
 
-const PageTransition = ({ children }: PageTransitionProps) => {
+const PageTransition = ({ children, showSkeleton = false }: PageTransitionProps) => {
+  const [isLoading, setIsLoading] = useState(showSkeleton);
+
+  useEffect(() => {
+    if (showSkeleton) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [showSkeleton]);
+
+  if (isLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <PageSkeleton />
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial="initial"
