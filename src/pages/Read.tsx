@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { mockBooks } from "@/data/books";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,9 @@ import {
   ChevronLeft, 
   ChevronRight, 
   List, 
-  X,
-  Settings,
   Minus,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react";
 import {
   Sheet,
@@ -22,36 +21,83 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useReadingProgress } from "@/hooks/useReadingProgress";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Read() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const book = mockBooks.find((b) => b.id === id);
   const chapterParam = searchParams.get("chapter");
-  const currentChapterIndex = chapterParam ? parseInt(chapterParam) - 1 : 0;
+  const initialChapterIndex = chapterParam ? parseInt(chapterParam) - 1 : 0;
   
   const [fontSize, setFontSize] = useState(18);
   const [showControls, setShowControls] = useState(true);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [hasRestoredProgress, setHasRestoredProgress] = useState(false);
+  
+  const { progress, isLoading, saveProgress, isAuthenticated } = useReadingProgress(id);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Determine current chapter - use URL param if set, otherwise use saved progress
+  const currentChapterIndex = chapterParam 
+    ? parseInt(chapterParam) - 1 
+    : (progress?.current_chapter ? progress.current_chapter - 1 : 0);
   
   const currentChapter = book?.chapters[currentChapterIndex];
   const totalChapters = book?.chapters.length || 0;
   const overallProgress = ((currentChapterIndex + 1) / totalChapters) * 100;
 
+  // Restore progress on initial load
+  useEffect(() => {
+    if (!isLoading && progress && !chapterParam && !hasRestoredProgress) {
+      setSearchParams({ chapter: progress.current_chapter.toString() });
+      setHasRestoredProgress(true);
+      toast({
+        title: "Welcome back!",
+        description: `Continuing from Chapter ${progress.current_chapter}`,
+      });
+    }
+  }, [isLoading, progress, chapterParam, hasRestoredProgress, setSearchParams, toast]);
+
+  // Track scroll progress
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-      setScrollProgress(progress);
+      const progressPercent = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      setScrollProgress(progressPercent);
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Auto-save progress with debounce
+  useEffect(() => {
+    if (!isAuthenticated || !id) return;
+
+    // Clear any existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Debounce save to avoid too many requests
+    saveTimeoutRef.current = setTimeout(() => {
+      saveProgress(currentChapterIndex + 1, scrollProgress);
+    }, 2000);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [currentChapterIndex, scrollProgress, isAuthenticated, id, saveProgress]);
+
+  // Scroll to top on chapter change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentChapterIndex]);
@@ -74,6 +120,10 @@ export default function Read() {
   const goToChapter = (chapterNumber: number) => {
     if (chapterNumber >= 1 && chapterNumber <= totalChapters) {
       setSearchParams({ chapter: chapterNumber.toString() });
+      // Immediately save when manually changing chapters
+      if (isAuthenticated) {
+        saveProgress(chapterNumber, 0);
+      }
     }
   };
 

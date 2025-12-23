@@ -4,11 +4,13 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, BookOpen, Star, Globe, Calendar } from "lucide-react";
+import { ArrowLeft, Clock, BookOpen, Star, Globe, Calendar, Play } from "lucide-react";
+import { useReadingProgress } from "@/hooks/useReadingProgress";
 
 export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
   const book = mockBooks.find((b) => b.id === id);
+  const { progress, isLoading, isAuthenticated } = useReadingProgress(id);
 
   if (!book) {
     return (
@@ -115,12 +117,29 @@ export default function BookDetail() {
 
               {/* CTA */}
               <div className="flex flex-wrap gap-4">
-                <Link to={`/read/${book.id}?chapter=1`}>
-                  <Button variant="editorial" size="xl" className="gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    Start Reading
-                  </Button>
-                </Link>
+                {progress && progress.current_chapter > 1 ? (
+                  <>
+                    <Link to={`/read/${book.id}?chapter=${progress.current_chapter}`}>
+                      <Button variant="editorial" size="xl" className="gap-2">
+                        <Play className="h-5 w-5" />
+                        Continue Chapter {progress.current_chapter}
+                      </Button>
+                    </Link>
+                    <Link to={`/read/${book.id}?chapter=1`}>
+                      <Button variant="outline" size="xl" className="gap-2">
+                        <BookOpen className="h-5 w-5" />
+                        Start Over
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <Link to={`/read/${book.id}?chapter=1`}>
+                    <Button variant="editorial" size="xl" className="gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      Start Reading
+                    </Button>
+                  </Link>
+                )}
                 <Button variant="outline" size="xl">
                   Add to Library
                 </Button>

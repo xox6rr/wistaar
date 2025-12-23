@@ -14,7 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      reading_progress: {
+        Row: {
+          book_id: string
+          created_at: string
+          current_chapter: number
+          id: string
+          last_read_at: string
+          scroll_position: number | null
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          current_chapter?: number
+          id?: string
+          last_read_at?: string
+          scroll_position?: number | null
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          current_chapter?: number
+          id?: string
+          last_read_at?: string
+          scroll_position?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
