@@ -27,11 +27,14 @@ const Navigation = () => {
   };
 
   const navLinks = [
-    { to: "/explore", label: "Explore", active: true },
-    { to: "/read", label: "Read", active: false },
-    { to: "/publish", label: "Publish", active: false },
-    { to: "/premium", label: "Premium", active: false },
+    { to: "/explore", label: "Explore" },
+    { to: "/library", label: "My Library", requiresAuth: true },
+    { to: "/publish", label: "Publish" },
   ];
+
+  const filteredNavLinks = navLinks.filter(
+    (link) => !link.requiresAuth || user
+  );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/50">
@@ -46,15 +49,11 @@ const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
+            {filteredNavLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`text-sm transition-colors duration-200 ${
-                  link.active
-                    ? "text-foreground hover:text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
               >
                 {link.label}
               </Link>
@@ -113,16 +112,12 @@ const Navigation = () => {
                 <div className="flex flex-col py-6">
                   {/* Mobile Nav Links */}
                   <div className="flex flex-col gap-1">
-                    {navLinks.map((link) => (
+                    {filteredNavLinks.map((link) => (
                       <Link
                         key={link.to}
                         to={link.to}
                         onClick={handleNavClick}
-                        className={`px-3 py-3 text-base rounded-md transition-colors ${
-                          link.active
-                            ? "text-foreground bg-muted"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                        }`}
+                        className="px-3 py-3 text-base rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       >
                         {link.label}
                       </Link>
