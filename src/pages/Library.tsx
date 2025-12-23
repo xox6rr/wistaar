@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Link, Navigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -7,72 +7,35 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Play, Clock, Library as LibraryIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useAllReadingProgress, ReadingProgress } from "@/hooks/useReadingProgress";
 import { mockBooks, Book } from "@/data/books";
 
-interface ReadingProgressData {
-  book_id: string;
-  current_chapter: number;
-  scroll_position: number;
-  last_read_at: string;
-}
-
 interface BookWithProgress extends Book {
-  progress: ReadingProgressData;
+  progress: ReadingProgress;
   progressPercent: number;
 }
 
 export default function Library() {
   const { user, loading: authLoading } = useAuth();
-  const [booksWithProgress, setBooksWithProgress] = useState<BookWithProgress[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { allProgress, isLoading } = useAllReadingProgress();
 
-  useEffect(() => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchProgress = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("reading_progress")
-          .select("book_id, current_chapter, scroll_position, last_read_at")
-          .eq("user_id", user.id)
-          .order("last_read_at", { ascending: false });
-
-        if (error) {
-          console.error("Error fetching reading progress:", error);
-          return;
-        }
-
-        if (data) {
-          const booksData: BookWithProgress[] = data
-            .map((progress) => {
-              const book = mockBooks.find((b) => b.id === progress.book_id);
-              if (!book) return null;
-              
-              const progressPercent = (progress.current_chapter / book.chapters.length) * 100;
-              
-              return {
-                ...book,
-                progress,
-                progressPercent,
-              };
-            })
-            .filter((b): b is BookWithProgress => b !== null);
-
-          setBooksWithProgress(booksData);
-        }
-      } catch (err) {
-        console.error("Failed to fetch reading progress:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProgress();
-  }, [user]);
+  const booksWithProgress = useMemo(() => {
+    return allProgress
+      .map((progress) => {
+        const book = mockBooks.find((b) => b.id === progress.book_id);
+        if (!book) return null;
+        
+        const progressPercent = (progress.current_chapter / book.chapters.length) * 100;
+        
+        return {
+          ...book,
+          progress,
+          progressPercent,
+        };
+      })
+      .filter((b): b is BookWithProgress => b !== null)
+      .sort((a, b) => new Date(b.progress.last_read_at).getTime() - new Date(a.progress.last_read_at).getTime());
+  }, [allProgress]);
 
   // Redirect to auth if not logged in
   if (!authLoading && !user) {
