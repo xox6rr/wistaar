@@ -63,21 +63,6 @@ const HeroSection = () => {
             </Link>
           </div>
 
-          {/* Trust indicators */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 text-caption text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span>10,000+ Active Readers</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-gold animate-pulse" style={{ animationDelay: '0.5s' }} />
-              <span>500+ Published Authors</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '1s' }} />
-              <span>Trusted Across India</span>
-            </div>
-          </div>
         </div>
 
         {/* Decorative book preview cards */}
