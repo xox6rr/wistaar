@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookmarks: {
+        Row: {
+          book_id: string
+          chapter_number: number
+          created_at: string
+          highlighted_text: string | null
+          id: string
+          note: string | null
+          scroll_position: number | null
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          chapter_number: number
+          created_at?: string
+          highlighted_text?: string | null
+          id?: string
+          note?: string | null
+          scroll_position?: number | null
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          chapter_number?: number
+          created_at?: string
+          highlighted_text?: string | null
+          id?: string
+          note?: string | null
+          scroll_position?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       reading_progress: {
         Row: {
           book_id: string
