@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { mockBooks } from "@/data/books";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   ChevronLeft, 
@@ -10,7 +11,9 @@ import {
   List, 
   Minus,
   Plus,
-  Loader2
+  Bookmark,
+  BookmarkCheck,
+  Trash2
 } from "lucide-react";
 import {
   Sheet,
@@ -19,9 +22,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useReadingProgress } from "@/hooks/useReadingProgress";
+import { useBookmarks, Bookmark as BookmarkType } from "@/hooks/useBookmarks";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Read() {
@@ -40,7 +52,10 @@ export default function Read() {
   const [hasRestoredProgress, setHasRestoredProgress] = useState(false);
   
   const { progress, isLoading, saveProgress, isAuthenticated } = useReadingProgress(id);
+  const { bookmarks, addBookmark, deleteBookmark } = useBookmarks(id);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
+  const [bookmarkNote, setBookmarkNote] = useState("");
   
   // Determine current chapter - use URL param if set, otherwise use saved progress
   const currentChapterIndex = chapterParam 
@@ -134,6 +149,44 @@ export default function Read() {
     setFontSize((prev) => Math.min(28, Math.max(14, prev + delta)));
   };
 
+  const handleAddBookmark = async () => {
+    const result = await addBookmark(
+      currentChapterIndex + 1,
+      scrollProgress,
+      bookmarkNote || undefined
+    );
+    if (result) {
+      toast({
+        title: "Bookmark added",
+        description: `Saved at Chapter ${currentChapterIndex + 1}`,
+      });
+      setBookmarkNote("");
+      setBookmarkDialogOpen(false);
+    }
+  };
+
+  const handleDeleteBookmark = async (bookmarkId: string) => {
+    const success = await deleteBookmark(bookmarkId);
+    if (success) {
+      toast({
+        title: "Bookmark removed",
+      });
+    }
+  };
+
+  const currentChapterBookmarks = bookmarks.filter(
+    (b) => b.chapter_number === currentChapterIndex + 1
+  );
+
+  const formatBookmarkDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   // Generate mock chapter content
   const chapterContent = generateChapterContent(currentChapter.title, book.title);
 
@@ -183,7 +236,28 @@ export default function Read() {
               </Button>
             </div>
 
-            {/* Chapter Navigation Sheet */}
+            {/* Bookmark Button */}
+            {isAuthenticated && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBookmarkDialogOpen(true);
+                }}
+                className={cn(
+                  currentChapterBookmarks.length > 0 && "text-primary"
+                )}
+              >
+                {currentChapterBookmarks.length > 0 ? (
+                  <BookmarkCheck className="h-5 w-5" />
+                ) : (
+                  <Bookmark className="h-5 w-5" />
+                )}
+              </Button>
+            )}
+
+            {/* Chapter & Bookmarks Sheet */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -192,33 +266,92 @@ export default function Read() {
               </SheetTrigger>
               <SheetContent side="right" className="w-80">
                 <SheetHeader>
-                  <SheetTitle className="font-display">Chapters</SheetTitle>
+                  <SheetTitle className="font-display">Navigation</SheetTitle>
                 </SheetHeader>
-                <ScrollArea className="h-[calc(100vh-100px)] mt-4">
-                  <div className="space-y-1">
-                    {book.chapters.map((chapter, index) => (
-                      <button
-                        key={chapter.id}
-                        onClick={() => {
-                          goToChapter(chapter.number);
-                        }}
-                        className={cn(
-                          "w-full text-left px-4 py-3 rounded-md transition-colors",
-                          index === currentChapterIndex
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
-                        )}
-                      >
-                        <span className="text-sm font-medium">
-                          {chapter.number}. {chapter.title}
-                        </span>
-                        <span className="block text-xs mt-0.5 opacity-70">
-                          {chapter.readingTime}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
+                
+                <Tabs defaultValue="chapters" className="mt-4">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="chapters" className="flex-1">Chapters</TabsTrigger>
+                    <TabsTrigger value="bookmarks" className="flex-1">
+                      Bookmarks {bookmarks.length > 0 && `(${bookmarks.length})`}
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="chapters">
+                    <ScrollArea className="h-[calc(100vh-180px)]">
+                      <div className="space-y-1">
+                        {book.chapters.map((chapter, index) => (
+                          <button
+                            key={chapter.id}
+                            onClick={() => goToChapter(chapter.number)}
+                            className={cn(
+                              "w-full text-left px-4 py-3 rounded-md transition-colors",
+                              index === currentChapterIndex
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <span className="text-sm font-medium">
+                              {chapter.number}. {chapter.title}
+                            </span>
+                            <span className="block text-xs mt-0.5 opacity-70">
+                              {chapter.readingTime}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                  
+                  <TabsContent value="bookmarks">
+                    <ScrollArea className="h-[calc(100vh-180px)]">
+                      {bookmarks.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Bookmark className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            No bookmarks yet
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {bookmarks.map((bookmark) => (
+                            <div
+                              key={bookmark.id}
+                              className="group p-3 rounded-md border border-border hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <button
+                                  onClick={() => goToChapter(bookmark.chapter_number)}
+                                  className="text-left flex-1"
+                                >
+                                  <p className="text-sm font-medium text-foreground">
+                                    Chapter {bookmark.chapter_number}
+                                  </p>
+                                  {bookmark.note && (
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                      {bookmark.note}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {formatBookmarkDate(bookmark.created_at)}
+                                  </p>
+                                </button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => handleDeleteBookmark(bookmark.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
               </SheetContent>
             </Sheet>
           </div>
@@ -334,6 +467,32 @@ export default function Read() {
           </div>
         </div>
       </footer>
+      {/* Bookmark Dialog */}
+      <Dialog open={bookmarkDialogOpen} onOpenChange={setBookmarkDialogOpen}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle className="font-display">Add Bookmark</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Bookmark at Chapter {currentChapterIndex + 1}: {currentChapter.title}
+            </p>
+            <Input
+              placeholder="Add a note (optional)"
+              value={bookmarkNote}
+              onChange={(e) => setBookmarkNote(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBookmarkDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="editorial" onClick={handleAddBookmark}>
+              Save Bookmark
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
