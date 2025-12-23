@@ -174,7 +174,7 @@ export default function Read() {
             Chapter not found
           </h1>
           <Link to="/explore">
-            <Button variant="editorial">Browse Books</Button>
+            <Button>Browse Books</Button>
           </Link>
         </div>
       </div>
@@ -511,12 +511,12 @@ export default function Read() {
               )}
               
               {currentChapterIndex < totalChapters - 1 ? (
-                <Button variant="editorial" onClick={nextChapter}>
+                <Button onClick={nextChapter}>
                   Next Chapter
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
               ) : (
-                <Button variant="editorial" asChild>
+                <Button asChild>
                   <Link to={`/book/${id}`}>
                     Finish Book
                   </Link>
@@ -607,7 +607,6 @@ export default function Read() {
               </Button>
               <Button 
                 size="sm" 
-                variant="editorial" 
                 className="flex-1 h-8 text-xs gap-1"
                 onClick={handleSaveHighlight}
               >
@@ -639,7 +638,7 @@ export default function Read() {
             <Button variant="outline" onClick={() => setBookmarkDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="editorial" onClick={handleAddBookmark}>
+            <Button onClick={handleAddBookmark}>
               Save Bookmark
             </Button>
           </DialogFooter>

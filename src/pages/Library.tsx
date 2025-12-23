@@ -99,7 +99,7 @@ export default function Library() {
                 Start reading a book and it will appear here. Your progress will be saved automatically.
               </p>
               <Link to="/explore">
-                <Button variant="editorial" size="lg" className="gap-2">
+                <Button size="lg" className="gap-2">
                   <BookOpen className="h-5 w-5" />
                   Explore Books
                 </Button>
@@ -162,7 +162,7 @@ export default function Library() {
                             to={`/read/${book.id}?chapter=${book.progress.current_chapter}`}
                             className="flex-1"
                           >
-                            <Button variant="editorial" size="sm" className="w-full gap-2">
+                            <Button size="sm" className="w-full gap-2">
                               <Play className="h-4 w-4" />
                               Continue
                             </Button>

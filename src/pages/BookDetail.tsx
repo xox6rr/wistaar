@@ -25,7 +25,7 @@ export default function BookDetail() {
               The book you're looking for doesn't exist or has been removed.
             </p>
             <Link to="/explore">
-              <Button variant="editorial">Browse Books</Button>
+              <Button>Browse Books</Button>
             </Link>
           </div>
         </main>
@@ -120,13 +120,13 @@ export default function BookDetail() {
                 {progress && progress.current_chapter > 1 ? (
                   <>
                     <Link to={`/read/${book.id}?chapter=${progress.current_chapter}`}>
-                      <Button variant="editorial" size="xl" className="gap-2">
+                      <Button size="lg" className="gap-2">
                         <Play className="h-5 w-5" />
                         Continue Chapter {progress.current_chapter}
                       </Button>
                     </Link>
                     <Link to={`/read/${book.id}?chapter=1`}>
-                      <Button variant="outline" size="xl" className="gap-2">
+                      <Button variant="outline" size="lg" className="gap-2">
                         <BookOpen className="h-5 w-5" />
                         Start Over
                       </Button>
@@ -134,13 +134,13 @@ export default function BookDetail() {
                   </>
                 ) : (
                   <Link to={`/read/${book.id}?chapter=1`}>
-                    <Button variant="editorial" size="xl" className="gap-2">
+                    <Button size="lg" className="gap-2">
                       <BookOpen className="h-5 w-5" />
                       Start Reading
                     </Button>
                   </Link>
                 )}
-                <Button variant="outline" size="xl">
+                <Button variant="outline" size="lg">
                   Add to Library
                 </Button>
               </div>

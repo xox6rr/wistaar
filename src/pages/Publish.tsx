@@ -64,10 +64,10 @@ const Publish = () => {
             No gatekeepers. No compromise. Just your words, reaching the readers who need them.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="editorial" size="xl">
+            <Button size="lg">
               Start Publishing
             </Button>
-            <Button variant="subtle" size="xl">
+            <Button variant="outline" size="lg">
               Learn More
             </Button>
           </div>
@@ -158,7 +158,7 @@ const Publish = () => {
           <p className="text-muted-foreground mb-8">
             Join thousands of authors who trust Wistaar with their stories.
           </p>
-          <Button variant="editorial" size="xl">
+          <Button size="lg">
             Create Author Account
           </Button>
         </div>

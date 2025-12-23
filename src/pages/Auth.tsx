@@ -192,7 +192,6 @@ export default function Auth() {
 
             <Button 
               type="submit" 
-              variant="editorial" 
               size="lg" 
               className="w-full h-12"
               disabled={isLoading}
