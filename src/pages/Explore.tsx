@@ -194,7 +194,7 @@ const Explore = () => {
                     {(["all", "free", "premium"] as const).map((price) => (
                       <Button
                         key={price}
-                        variant={priceFilter === price ? "editorial" : "outline"}
+                        variant={priceFilter === price ? "default" : "outline"}
                         size="sm"
                         onClick={() => setPriceFilter(price)}
                         className="flex-1 capitalize"
