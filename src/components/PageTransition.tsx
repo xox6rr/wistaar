@@ -10,7 +10,7 @@ interface PageTransitionProps {
 const pageVariants = {
   initial: {
     opacity: 0,
-    y: 20,
+    y: 12,
   },
   animate: {
     opacity: 1,
@@ -18,14 +18,14 @@ const pageVariants = {
   },
   exit: {
     opacity: 0,
-    y: -10,
+    y: -8,
   },
 };
 
 const pageTransition = {
   type: "tween" as const,
-  ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
-  duration: 0.4,
+  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+  duration: 0.35,
 };
 
 const PageTransition = ({ children, showSkeleton = false }: PageTransitionProps) => {
