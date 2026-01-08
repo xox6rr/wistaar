@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "./PageTransition";
+import ScrollToTop from "./ScrollToTop";
 import { ExploreSkeleton, LibrarySkeleton, BookDetailSkeleton } from "./PageSkeletons";
 import Index from "@/pages/Index";
 import Explore from "@/pages/Explore";
@@ -15,8 +16,10 @@ const AnimatedRoutes = () => {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+    <>
+      <ScrollToTop />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
         <Route
           path="/"
           element={
@@ -81,8 +84,9 @@ const AnimatedRoutes = () => {
             </PageTransition>
           }
         />
-      </Routes>
-    </AnimatePresence>
+        </Routes>
+      </AnimatePresence>
+    </>
   );
 };
 
