@@ -28,9 +28,6 @@ const CTASection = () => {
           </Link>
         </div>
         
-        <p className="text-sm text-muted-foreground">
-          Join <span className="text-foreground font-medium">10,000+</span> readers today
-        </p>
       </div>
     </section>
   );
