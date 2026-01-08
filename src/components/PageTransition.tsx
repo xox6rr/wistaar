@@ -47,8 +47,9 @@ const PageTransition = ({ children, showSkeleton = false }: PageTransitionProps)
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
+        className="min-h-screen flex items-center justify-center"
       >
-        <PageSkeleton />
+        <div className="w-5 h-5 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
       </motion.div>
     );
   }
