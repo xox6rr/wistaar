@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,30 +6,36 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Calendar, Loader2 } from "lucide-react";
+import { User, Calendar, Loader2, Camera } from "lucide-react";
 
 interface Profile {
   display_name: string | null;
   avatar_url: string | null;
-  bio: string | null;
 }
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [profile, setProfile] = useState<Profile>({ display_name: null, avatar_url: null, bio: null });
+  const [profile, setProfile] = useState<Profile>({ display_name: null, avatar_url: null });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [bio, setBio] = useState("");
+  const [now, setNow] = useState(new Date());
+
+  // Real-time clock
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -43,7 +49,7 @@ const Profile = () => {
     const fetchProfile = async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name, avatar_url, bio")
+        .select("display_name, avatar_url")
         .eq("user_id", user.id)
         .single();
 
@@ -51,13 +57,47 @@ const Profile = () => {
         setProfile(data);
         setDisplayName(data.display_name ?? "");
         setAvatarUrl(data.avatar_url ?? "");
-        setBio(data.bio ?? "");
       }
       setIsLoading(false);
     };
 
     fetchProfile();
   }, [user]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please select an image under 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    const ext = file.name.split(".").pop();
+    const filePath = `${user.id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      setIsUploading(false);
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
+    const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
+    setAvatarUrl(urlWithCacheBust);
+    setIsUploading(false);
+    toast({ title: "Avatar uploaded", description: "Don't forget to save your changes." });
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -68,7 +108,6 @@ const Profile = () => {
       .update({
         display_name: displayName || null,
         avatar_url: avatarUrl || null,
-        bio: bio || null,
       })
       .eq("user_id", user.id);
 
@@ -77,7 +116,7 @@ const Profile = () => {
     if (error) {
       toast({ title: "Error", description: "Failed to update profile.", variant: "destructive" });
     } else {
-      setProfile({ display_name: displayName || null, avatar_url: avatarUrl || null, bio: bio || null });
+      setProfile({ display_name: displayName || null, avatar_url: avatarUrl || null });
       toast({ title: "Profile updated", description: "Your changes have been saved." });
     }
   };
@@ -85,8 +124,7 @@ const Profile = () => {
   const initials = (displayName || user?.email || "U").slice(0, 2).toUpperCase();
   const hasChanges =
     displayName !== (profile.display_name ?? "") ||
-    avatarUrl !== (profile.avatar_url ?? "") ||
-    bio !== (profile.bio ?? "");
+    avatarUrl !== (profile.avatar_url ?? "");
 
   if (authLoading || isLoading) {
     return (
@@ -106,14 +144,34 @@ const Profile = () => {
             <p className="text-muted-foreground text-sm">Manage your account details</p>
           </div>
 
-          {/* Avatar preview */}
+          {/* Avatar with upload */}
           <div className="flex items-center gap-4">
-            <Avatar className="w-16 h-16">
-              <AvatarImage src={avatarUrl} alt={displayName} />
-              <AvatarFallback className="bg-accent text-accent-foreground text-lg font-serif">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative group">
+              <Avatar className="w-16 h-16">
+                <AvatarImage src={avatarUrl} alt={displayName} />
+                <AvatarFallback className="bg-accent text-accent-foreground text-lg font-serif">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="absolute inset-0 flex items-center justify-center bg-foreground/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                {isUploading ? (
+                  <Loader2 className="w-5 h-5 text-background animate-spin" />
+                ) : (
+                  <Camera className="w-5 h-5 text-background" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+            </div>
             <div>
               <p className="font-medium">{displayName || "No name set"}</p>
               <p className="text-sm text-muted-foreground">{user?.email}</p>
@@ -138,34 +196,12 @@ const Profile = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="avatarUrl" className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  Avatar URL
-                </Label>
-                <Input
-                  id="avatarUrl"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://example.com/avatar.jpg"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Tell us about yourself..."
-                  rows={4}
-                />
-              </div>
-
               <div className="flex items-center justify-between pt-2">
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  Joined {user?.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
+                  {now.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
+                  {" · "}
+                  {now.toLocaleTimeString()}
                 </p>
                 <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
                   {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
