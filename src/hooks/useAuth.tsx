@@ -1,9 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-
-// ============================================
-// FRONTEND-ONLY AUTH HOOK
-// Replace this with your backend API calls
-// ============================================
+import { supabase } from '@/integrations/supabase/client';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
@@ -23,101 +20,61 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'wistaar_auth_user';
+function mapUser(su: SupabaseUser): User {
+  return {
+    id: su.id,
+    email: su.email ?? '',
+    name: su.user_metadata?.full_name ?? su.user_metadata?.name,
+    avatar: su.user_metadata?.avatar_url ?? su.user_metadata?.picture,
+    created_at: su.created_at,
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem(STORAGE_KEY);
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        localStorage.removeItem(STORAGE_KEY);
+    // Listen for auth changes FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session: Session | null) => {
+        if (session?.user) {
+          setUser(mapUser(session.user));
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    );
+
+    // Then check existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(mapUser(session.user));
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // ============================================
-  // TODO: Replace with your backend API call
-  // Example: POST /api/auth/signup
-  // ============================================
   const signUp = async (email: string, password: string): Promise<{ error: Error | null }> => {
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      // const data = await response.json();
-
-      // Mock successful signup
-      const newUser: User = {
-        id: crypto.randomUUID(),
-        email,
-        created_at: new Date().toISOString(),
-      };
-
-      setUser(newUser);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
-
-      return { error: null };
-    } catch (error) {
-      return { error: error as Error };
-    }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    return { error: error ? new Error(error.message) : null };
   };
 
-  // ============================================
-  // TODO: Replace with your backend API call
-  // Example: POST /api/auth/signin
-  // ============================================
   const signIn = async (email: string, password: string): Promise<{ error: Error | null }> => {
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/auth/signin', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      // const data = await response.json();
-
-      // Mock successful signin
-      const mockUser: User = {
-        id: crypto.randomUUID(),
-        email,
-        created_at: new Date().toISOString(),
-      };
-
-      setUser(mockUser);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(mockUser));
-
-      return { error: null };
-    } catch (error) {
-      return { error: error as Error };
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error: error ? new Error(error.message) : null };
   };
 
-  // ============================================
-  // TODO: Replace with your backend API call
-  // Example: POST /api/auth/signout
-  // ============================================
   const signOut = async (): Promise<void> => {
-    // TODO: Call your logout endpoint if needed
-    // await fetch('/api/auth/signout', { method: 'POST' });
-
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
   };
 
   return (
