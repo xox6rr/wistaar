@@ -10,6 +10,7 @@ import Auth from "@/pages/Auth";
 import BookDetail from "@/pages/BookDetail";
 import Read from "@/pages/Read";
 import Library from "@/pages/Library";
+import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 
 const AnimatedRoutes = () => {
@@ -73,6 +74,14 @@ const AnimatedRoutes = () => {
           element={
             <PageTransition skeleton={<LibrarySkeleton />}>
               <Library />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PageTransition>
+              <Profile />
             </PageTransition>
           }
         />

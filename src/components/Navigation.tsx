@@ -64,9 +64,14 @@ const Navigation = () => {
             {loading ? (
               <div className="h-9 w-20 bg-muted animate-pulse rounded" />
             ) : user ? (
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                Sign out
-              </Button>
+              <div className="flex items-center gap-1">
+                <Link to="/profile">
+                  <Button variant="ghost" size="sm">Profile</Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  Sign out
+                </Button>
+              </div>
             ) : (
               <Link to="/auth">
                 <Button size="sm">Get Started</Button>
@@ -103,6 +108,11 @@ const Navigation = () => {
               {!loading && !user && (
                 <Link to="/auth" onClick={() => setIsOpen(false)}>
                   <Button size="sm" className="w-full">Get Started</Button>
+                </Link>
+              )}
+              {user && (
+                <Link to="/profile" onClick={() => setIsOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start">Profile</Button>
                 </Link>
               )}
               {user && (
