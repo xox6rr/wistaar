@@ -51,7 +51,7 @@ const Profile = () => {
         .from("profiles")
         .select("display_name, avatar_url")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         setProfile(data);
