@@ -30,12 +30,11 @@ export default function AuthorSignup() {
 
   useEffect(() => {
     if (!loading && user) {
-      // Check if user has author role, redirect accordingly
-      checkAuthorRole();
+      handlePostLogin();
     }
   }, [user, loading]);
 
-  const checkAuthorRole = async () => {
+  const handlePostLogin = async () => {
     if (!user) return;
     const { data } = await supabase
       .from('user_roles')
@@ -45,6 +44,14 @@ export default function AuthorSignup() {
 
     if (data && data.length > 0) {
       navigate('/author/dashboard');
+      return;
+    }
+
+    // Check if there's a pending author signup
+    const pending = localStorage.getItem('pending_author_signup');
+    if (pending) {
+      localStorage.removeItem('pending_author_signup');
+      await assignAuthorRoleIfNeeded();
     }
   };
 
