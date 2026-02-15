@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, FileText, Image as ImageIcon } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, DollarSign } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { z } from 'zod';
 
 const genres = [
@@ -36,6 +38,9 @@ export default function BookSubmit() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [manuscriptFile, setManuscriptFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
+  const [price, setPrice] = useState('');
+  const [freeChapters, setFreeChapters] = useState(3);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -84,6 +89,11 @@ export default function BookSubmit() {
       return;
     }
 
+    if (isPremium && (!price || parseFloat(price) <= 0)) {
+      setErrors(prev => ({ ...prev, price: 'Please enter a valid price' }));
+      return;
+    }
+
     if (!manuscriptFile) {
       setErrors(prev => ({ ...prev, manuscript: 'Please upload your manuscript (PDF)' }));
       return;
@@ -124,7 +134,9 @@ export default function BookSubmit() {
         cover_image_url: coverUrl,
         manuscript_url: manuscriptUrl,
         status: 'pending',
-      } as any);
+        price: isPremium ? parseFloat(price) : 0,
+        free_chapters: isPremium ? freeChapters : 0,
+      });
 
       if (insertError) throw new Error('Failed to create submission');
 
@@ -252,7 +264,61 @@ export default function BookSubmit() {
               {errors.cover && <p className="text-sm text-destructive">{errors.cover}</p>}
             </div>
 
-            {/* Manuscript */}
+            {/* Pricing */}
+            <div className="space-y-4 rounded-lg border border-border p-5 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Premium Content</Label>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Charge readers for access to your book
+                  </p>
+                </div>
+                <Switch checked={isPremium} onCheckedChange={setIsPremium} disabled={isSubmitting} />
+              </div>
+
+              {isPremium && (
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Price ($) *</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="price"
+                        type="number"
+                        min="0.99"
+                        max="99.99"
+                        step="0.01"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        placeholder="4.99"
+                        className="h-12 pl-9"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Free preview chapters</Label>
+                      <span className="text-sm font-medium text-foreground">{freeChapters}</span>
+                    </div>
+                    <Slider
+                      value={[freeChapters]}
+                      onValueChange={(v) => setFreeChapters(v[0])}
+                      min={1}
+                      max={10}
+                      step={1}
+                      disabled={isSubmitting}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Readers can read the first {freeChapters} chapter{freeChapters > 1 ? 's' : ''} for free
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Manuscript (PDF) *</Label>
               <label className="cursor-pointer block">

@@ -20,9 +20,11 @@ export type Database = {
           author_id: string
           cover_image_url: string | null
           description: string
+          free_chapters: number
           genre: string
           id: string
           manuscript_url: string | null
+          price: number
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -34,9 +36,11 @@ export type Database = {
           author_id: string
           cover_image_url?: string | null
           description: string
+          free_chapters?: number
           genre: string
           id?: string
           manuscript_url?: string | null
+          price?: number
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -48,9 +52,11 @@ export type Database = {
           author_id?: string
           cover_image_url?: string | null
           description?: string
+          free_chapters?: number
           genre?: string
           id?: string
           manuscript_url?: string | null
+          price?: number
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
