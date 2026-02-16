@@ -13,6 +13,7 @@ import BookSubmit from "@/pages/BookSubmit";
 import AdminDashboard from "@/pages/AdminDashboard";
 import BookDetail from "@/pages/BookDetail";
 import Read from "@/pages/Read";
+import BookReader from "@/pages/BookReader";
 import Library from "@/pages/Library";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
@@ -102,6 +103,14 @@ const AnimatedRoutes = () => {
           element={
             <PageTransition>
               <Read />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/reader/:id"
+          element={
+            <PageTransition>
+              <BookReader />
             </PageTransition>
           }
         />
