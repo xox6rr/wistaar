@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -54,30 +55,33 @@ export default function ReaderToolbar({
   onGoToChapter,
 }: ReaderToolbarProps) {
   return (
-    <header
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50 transition-all duration-300",
-        !visible && "-translate-y-full opacity-0"
-      )}
+    <motion.header
+      className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50"
+      initial={false}
+      animate={{
+        y: visible ? 0 : -60,
+        opacity: visible ? 1 : 0,
+      }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      <div className="flex items-center justify-between px-4 md:px-6 h-14">
+      <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 h-12 sm:h-14">
         {/* Left: Back + title */}
-        <div className="flex items-center gap-2 min-w-0">
-          <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
-            <ArrowLeft className="h-5 w-5" />
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+          <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 h-9 w-9 sm:h-10 sm:w-10">
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <div className="hidden sm:block min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{bookTitle}</p>
-            <p className="text-xs text-muted-foreground">Chapter {currentChapter}</p>
+          <div className="min-w-0 hidden xs:block sm:block">
+            <p className="text-xs sm:text-sm font-medium text-foreground truncate max-w-[120px] sm:max-w-none">{bookTitle}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Chapter {currentChapter}</p>
           </div>
         </div>
 
         {/* Center: Page navigation */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrevPage}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-xs text-muted-foreground tabular-nums min-w-[60px] text-center">
+          <span className="text-[10px] sm:text-xs text-muted-foreground tabular-nums min-w-[50px] sm:min-w-[60px] text-center">
             {currentPage + 1} / {totalPages}
           </span>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNextPage}>
@@ -86,8 +90,8 @@ export default function ReaderToolbar({
         </div>
 
         {/* Right: Controls */}
-        <div className="flex items-center gap-1">
-          {/* Font Size */}
+        <div className="flex items-center gap-0.5 sm:gap-1 flex-1 justify-end">
+          {/* Font Size — hidden on small mobile */}
           <div className="hidden sm:flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onFontSizeChange(-2)}>
               <Minus className="h-3 w-3" />
@@ -99,18 +103,18 @@ export default function ReaderToolbar({
           </div>
 
           {/* Fullscreen */}
-          <Button variant="ghost" size="icon" onClick={onToggleFullscreen}>
-            {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+          <Button variant="ghost" size="icon" onClick={onToggleFullscreen} className="h-9 w-9 sm:h-10 sm:w-10">
+            {isFullscreen ? <Minimize className="h-4 w-4 sm:h-5 sm:w-5" /> : <Maximize className="h-4 w-4 sm:h-5 sm:w-5" />}
           </Button>
 
           {/* Chapter List */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <List className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
+                <List className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80">
+            <SheetContent side="right" className="w-[280px] sm:w-80">
               <SheetHeader>
                 <SheetTitle className="font-serif">Chapters</SheetTitle>
               </SheetHeader>
@@ -121,10 +125,10 @@ export default function ReaderToolbar({
                       key={ch.id}
                       onClick={() => onGoToChapter(ch.chapter_number)}
                       className={cn(
-                        "w-full text-left px-4 py-3 rounded-md transition-colors text-sm",
+                        "w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 rounded-md transition-colors text-sm",
                         ch.chapter_number === currentChapter
                           ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
+                          : "hover:bg-muted active:bg-muted"
                       )}
                     >
                       <span className="font-medium">
@@ -138,6 +142,16 @@ export default function ReaderToolbar({
           </Sheet>
         </div>
       </div>
-    </header>
+
+      {/* Progress bar */}
+      <div className="h-0.5 bg-muted">
+        <motion.div
+          className="h-full bg-primary"
+          initial={false}
+          animate={{ width: `${totalPages > 0 ? ((currentPage + 1) / totalPages) * 100 : 0}%` }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        />
+      </div>
+    </motion.header>
   );
 }

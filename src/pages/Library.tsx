@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { Link, Navigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,11 @@ interface PurchasedBook {
 }
 
 const statusFilters = ["All", "In Progress", "Completed", "Purchased"] as const;
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 200, damping: 24 } },
+};
 
 export default function Library() {
   const { user, loading: authLoading } = useAuth();
@@ -93,7 +99,6 @@ export default function Library() {
       .sort((a, b) => new Date(b.progress.last_read_at).getTime() - new Date(a.progress.last_read_at).getTime());
   }, [allProgress, archivedIds]);
 
-  // Apply search + status filter
   const filteredProgress = useMemo(() => {
     let list = booksWithProgress;
     if (search) {
@@ -116,7 +121,6 @@ export default function Library() {
     return list;
   }, [purchasedBooks, search, statusFilter]);
 
-  // Stats
   const completedCount = booksWithProgress.filter((b) => b.progressPercent >= 100).length;
   const inProgressCount = booksWithProgress.filter((b) => b.progressPercent < 100).length;
 
@@ -132,17 +136,22 @@ export default function Library() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <main className="pt-24 pb-16">
-        <div className="container-editorial">
+      <main className="pt-20 sm:pt-24 pb-12 sm:pb-16">
+        <div className="container-editorial px-4 sm:px-6">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl md:text-5xl font-display font-medium text-foreground mb-4">
+          <motion.div
+            className="mb-6 sm:mb-8"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-medium text-foreground mb-2 sm:mb-4">
               My Library
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base sm:text-lg text-muted-foreground">
               Continue where you left off or start something new.
             </p>
-          </div>
+          </motion.div>
 
           {/* Stats */}
           {!anyLoading && (
@@ -156,7 +165,12 @@ export default function Library() {
 
           {/* Search & Filter */}
           {!anyLoading && hasBooks && (
-            <div className="flex flex-col sm:flex-row gap-3 mb-8">
+            <motion.div
+              className="flex flex-col sm:flex-row gap-3 mb-6 sm:mb-8"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.35 }}
+            >
               <div className="flex-1">
                 <SearchBar value={search} onChange={setSearch} placeholder="Search your library..." />
               </div>
@@ -168,14 +182,14 @@ export default function Library() {
                   placeholder="Status"
                 />
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Loading */}
           {anyLoading && (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-card rounded-lg p-6 animate-pulse">
+                <div key={i} className="bg-card rounded-lg p-5 sm:p-6 animate-pulse">
                   <div className="aspect-[3/2] bg-muted rounded-md mb-4" />
                   <div className="h-5 bg-muted rounded w-3/4 mb-2" />
                   <div className="h-4 bg-muted rounded w-1/2" />
@@ -186,14 +200,19 @@ export default function Library() {
 
           {/* Empty State */}
           {!anyLoading && !hasBooks && (
-            <div className="text-center py-20">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
-                <LibraryIcon className="h-10 w-10 text-muted-foreground" />
+            <motion.div
+              className="text-center py-16 sm:py-20"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            >
+              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-5 sm:mb-6 rounded-full bg-muted flex items-center justify-center">
+                <LibraryIcon className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground" />
               </div>
-              <h2 className="text-2xl font-display font-medium text-foreground mb-3">
+              <h2 className="text-xl sm:text-2xl font-display font-medium text-foreground mb-3">
                 Your library is empty
               </h2>
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto">
                 Start reading a book and it will appear here. Your progress will be saved automatically.
               </p>
               <Link to="/explore">
@@ -202,63 +221,83 @@ export default function Library() {
                   Explore Books
                 </Button>
               </Link>
-            </div>
+            </motion.div>
           )}
 
           {/* No filter results */}
           {!anyLoading && hasBooks && !hasFilteredResults && (search || statusFilter !== "All") && (
-            <div className="text-center py-16">
+            <motion.div
+              className="text-center py-12 sm:py-16"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
               <p className="text-muted-foreground">No books match your search or filter.</p>
               <Button variant="ghost" size="sm" className="mt-3" onClick={() => { setSearch(""); setStatusFilter("All"); }}>
                 Clear Filters
               </Button>
-            </div>
+            </motion.div>
           )}
 
           {/* Books Grid */}
-          {!anyLoading && hasFilteredResults && (
-            <>
-              {filteredPurchased.length > 0 && (
-                <section className="mb-12">
-                  <h2 className="text-xl font-display font-medium text-foreground mb-6">
-                    Purchased Books
-                  </h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredPurchased.map((book) => (
-                      <PurchasedBookCard key={book.id} book={book} />
-                    ))}
-                  </div>
-                </section>
-              )}
+          <AnimatePresence mode="wait">
+            {!anyLoading && hasFilteredResults && (
+              <motion.div
+                key={`${statusFilter}-${search}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {filteredPurchased.length > 0 && (
+                  <motion.section className="mb-8 sm:mb-12" variants={sectionVariants} initial="hidden" animate="visible">
+                    <h2 className="text-lg sm:text-xl font-display font-medium text-foreground mb-4 sm:mb-6">
+                      Purchased Books
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      {filteredPurchased.map((book, i) => (
+                        <PurchasedBookCard key={book.id} book={book} index={i} />
+                      ))}
+                    </div>
+                  </motion.section>
+                )}
 
-              {filteredProgress.length > 0 && (
-                <section className="mb-12">
-                  <h2 className="text-xl font-display font-medium text-foreground mb-6">
-                    {statusFilter === "Completed" ? "Completed Books" : "Continue Reading"}
-                  </h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredProgress.map((book) => (
-                      <ContinueReadingCard key={book.id} book={book} onArchive={handleArchive} />
-                    ))}
-                  </div>
-                </section>
-              )}
+                {filteredProgress.length > 0 && (
+                  <motion.section className="mb-8 sm:mb-12" variants={sectionVariants} initial="hidden" animate="visible">
+                    <h2 className="text-lg sm:text-xl font-display font-medium text-foreground mb-4 sm:mb-6">
+                      {statusFilter === "Completed" ? "Completed Books" : "Continue Reading"}
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      <AnimatePresence>
+                        {filteredProgress.map((book, i) => (
+                          <ContinueReadingCard key={book.id} book={book} index={i} onArchive={handleArchive} />
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  </motion.section>
+                )}
 
-              <section className="pt-8 border-t border-border">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-display font-medium text-foreground">
-                    Discover More
-                  </h2>
-                  <Link to="/explore">
-                    <Button variant="ghost" size="sm">View All</Button>
-                  </Link>
-                </div>
-                <p className="text-muted-foreground">
-                  Explore our collection of {mockBooks.length} books and find your next read.
-                </p>
-              </section>
-            </>
-          )}
+                <motion.section
+                  className="pt-6 sm:pt-8 border-t border-border"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <h2 className="text-lg sm:text-xl font-display font-medium text-foreground">
+                      Discover More
+                    </h2>
+                    <Link to="/explore">
+                      <Button variant="ghost" size="sm">View All</Button>
+                    </Link>
+                  </div>
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    Explore our collection of {mockBooks.length} books and find your next read.
+                  </p>
+                </motion.section>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
 

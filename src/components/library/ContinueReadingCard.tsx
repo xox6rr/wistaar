@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, Clock, Archive } from "lucide-react";
@@ -16,6 +17,7 @@ interface BookWithProgress {
 
 interface Props {
   book: BookWithProgress;
+  index?: number;
   onArchive?: (bookId: string) => void;
 }
 
@@ -33,23 +35,30 @@ function formatLastRead(dateString: string) {
   return date.toLocaleDateString();
 }
 
-export default function ContinueReadingCard({ book, onArchive }: Props) {
+export default function ContinueReadingCard({ book, index = 0, onArchive }: Props) {
   const isCompleted = book.progressPercent >= 100;
 
   return (
-    <article className="group bg-card rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors">
-      <div className="flex gap-5 p-5">
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+      transition={{ delay: index * 0.06, type: "spring", stiffness: 260, damping: 22 }}
+      layout
+      className="group bg-card rounded-lg border border-border overflow-hidden hover:border-primary/50 hover:shadow-md transition-all duration-300"
+    >
+      <div className="flex gap-4 p-4 sm:gap-5 sm:p-5">
         <div className="flex-shrink-0 flex items-center">
-          <ReadingProgress3D percent={book.progressPercent} size={80} strokeWidth={6} />
+          <ReadingProgress3D percent={book.progressPercent} size={70} strokeWidth={5} />
         </div>
         <div className="flex-1 min-w-0">
           <Link to={`/book/${book.id}`}>
-            <h3 className="font-display text-lg font-medium text-foreground leading-tight line-clamp-1 hover:text-accent transition-colors">
+            <h3 className="font-display text-base sm:text-lg font-medium text-foreground leading-tight line-clamp-1 hover:text-accent transition-colors duration-200">
               {book.title}
             </h3>
           </Link>
           <p className="text-sm text-muted-foreground mt-0.5">{book.author}</p>
-          <div className="flex items-center gap-3 mt-2">
+          <div className="flex items-center gap-2 sm:gap-3 mt-2 flex-wrap">
             <Badge variant={isCompleted ? "default" : "secondary"} className="text-xs">
               {isCompleted ? "Completed" : `Ch ${book.progress.current_chapter}/${book.chapters.length}`}
             </Badge>
@@ -58,33 +67,33 @@ export default function ContinueReadingCard({ book, onArchive }: Props) {
               {formatLastRead(book.progress.last_read_at)}
             </span>
           </div>
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2 mt-3 flex-wrap">
             {!isCompleted && (
               <Link to={`/read/${book.id}?chapter=${book.progress.current_chapter}`}>
-                <Button size="sm" className="gap-2">
-                  <Play className="h-4 w-4" /> Continue
+                <Button size="sm" className="gap-1.5 text-xs sm:text-sm">
+                  <Play className="h-3.5 w-3.5" /> Continue
                 </Button>
               </Link>
             )}
             <Link to={`/book/${book.id}`}>
-              <Button variant="outline" size="sm">Details</Button>
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">Details</Button>
             </Link>
             {isCompleted && onArchive && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1 text-muted-foreground"
+                className="gap-1 text-muted-foreground text-xs sm:text-sm"
                 onClick={(e) => {
                   e.preventDefault();
                   onArchive(book.id);
                 }}
               >
-                <Archive className="h-4 w-4" /> Hide
+                <Archive className="h-3.5 w-3.5" /> Hide
               </Button>
             )}
           </div>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
