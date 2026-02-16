@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Star, IndianRupee } from "lucide-react";
 import type { ApprovedBook } from "@/hooks/useApprovedBooks";
+import WishlistButton from "@/components/WishlistButton";
 
 interface ApprovedBookCardProps {
   book: ApprovedBook;
@@ -19,12 +20,14 @@ const ApprovedBookCard = ({ book }: ApprovedBookCardProps) => {
               src={book.coverImageUrl}
               alt={book.title}
               className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
             />
           )}
           <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors duration-300" />
 
-          {/* Price Badge */}
-          <div className="relative z-10 self-end">
+          {/* Top row: Wishlist + Price */}
+          <div className="relative z-10 flex items-start justify-between">
+            <WishlistButton bookId={book.id} />
             <span
               className={`text-xs font-medium uppercase tracking-wider px-2 py-1 rounded ${
                 book.price === "premium"

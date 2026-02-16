@@ -8,6 +8,9 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, BookOpen, Star, Calendar, Play, IndianRupee, Loader2, ShoppingCart, Check } from "lucide-react";
+import BookReviews from "@/components/BookReviews";
+import SocialShare from "@/components/SocialShare";
+import WishlistButton from "@/components/WishlistButton";
 import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { useHasPurchased, useInitiatePayment } from "@/hooks/usePurchases";
 import { useCart, useAddToCart } from "@/hooks/useCart";
@@ -181,6 +184,7 @@ export default function BookDetail() {
                     )}
                   </Badge>
                   <span className="text-sm text-muted-foreground">{book.genre}</span>
+                  {isApproved && <WishlistButton bookId={book.id} variant="button" />}
                 </div>
 
                 <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground leading-tight mb-4">
@@ -393,6 +397,16 @@ export default function BookDetail() {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Social Share */}
+              <div className="py-4 border-t border-border">
+                <SocialShare title={`Check out "${book.title}" on Wistaar`} />
+              </div>
+
+              {/* Reviews */}
+              {isApproved && (
+                <BookReviews bookId={book.id} />
               )}
             </div>
           </div>

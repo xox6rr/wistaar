@@ -4,17 +4,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Library as LibraryIcon } from "lucide-react";
+import { BookOpen, Library as LibraryIcon, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAllReadingProgress, ReadingProgress } from "@/hooks/useReadingProgress";
 import { mockBooks } from "@/data/books";
 import { usePurchases } from "@/hooks/usePurchases";
 import { useApprovedBooks } from "@/hooks/useApprovedBooks";
+import { useWishlist } from "@/hooks/useWishlist";
 import SearchBar from "@/components/SearchBar";
 import FilterSelect from "@/components/FilterSelect";
 import LibraryStats from "@/components/library/LibraryStats";
 import PurchasedBookCard from "@/components/library/PurchasedBookCard";
 import ContinueReadingCard, { type LibraryBookWithProgress } from "@/components/library/ContinueReadingCard";
+import WishlistButton from "@/components/WishlistButton";
 import { toast } from "sonner";
 
 interface PurchasedBook {
@@ -28,7 +30,7 @@ interface PurchasedBook {
   genre: string;
 }
 
-const statusFilters = ["All", "In Progress", "Completed", "Purchased"] as const;
+const statusFilters = ["All", "In Progress", "Completed", "Purchased", "Wishlist"] as const;
 
 const sectionVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -40,6 +42,7 @@ export default function Library() {
   const { allProgress, isLoading } = useAllReadingProgress();
   const { data: purchases, isLoading: purchasesLoading } = usePurchases();
   const { data: approvedBooks } = useApprovedBooks();
+  const { data: wishlistItems } = useWishlist();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -130,9 +133,30 @@ export default function Library() {
     }
     if (statusFilter === "In Progress") list = list.filter((b) => b.progressPercent < 100);
     if (statusFilter === "Completed") list = list.filter((b) => b.progressPercent >= 100);
-    if (statusFilter === "Purchased") list = [];
+    if (statusFilter === "Purchased" || statusFilter === "Wishlist") list = [];
     return list;
   }, [booksWithProgress, search, statusFilter]);
+
+  const wishlistBooks = useMemo(() => {
+    if (!wishlistItems || !approvedBooks) return [];
+    return wishlistItems
+      .map((w) => {
+        const book = approvedBooks.find((b) => b.id === w.book_id);
+        if (!book) return null;
+        return book;
+      })
+      .filter(Boolean) as typeof approvedBooks;
+  }, [wishlistItems, approvedBooks]);
+
+  const filteredWishlist = useMemo(() => {
+    if (statusFilter !== "All" && statusFilter !== "Wishlist") return [];
+    let list = wishlistBooks;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((b) => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+    }
+    return list;
+  }, [wishlistBooks, search, statusFilter]);
 
   const filteredPurchased = useMemo(() => {
     if (statusFilter === "In Progress" || statusFilter === "Completed") return [];
@@ -152,8 +176,8 @@ export default function Library() {
   }
 
   const anyLoading = isLoading || authLoading || purchasesLoading;
-  const hasBooks = booksWithProgress.length > 0 || purchasedBooks.length > 0;
-  const hasFilteredResults = filteredProgress.length > 0 || filteredPurchased.length > 0;
+  const hasBooks = booksWithProgress.length > 0 || purchasedBooks.length > 0 || wishlistBooks.length > 0;
+  const hasFilteredResults = filteredProgress.length > 0 || filteredPurchased.length > 0 || filteredWishlist.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -296,6 +320,41 @@ export default function Library() {
                           <ContinueReadingCard key={book.id} book={book} index={i} onArchive={handleArchive} />
                         ))}
                       </AnimatePresence>
+                    </div>
+                  </motion.section>
+                )}
+
+                {/* Wishlist Section */}
+                {filteredWishlist.length > 0 && (
+                  <motion.section className="mb-8 sm:mb-12" variants={sectionVariants} initial="hidden" animate="visible">
+                    <h2 className="text-lg sm:text-xl font-display font-medium text-foreground mb-4 sm:mb-6 flex items-center gap-2">
+                      <Heart className="h-5 w-5 text-red-500" /> Wishlist
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      {filteredWishlist.map((book, i) => (
+                        <Link key={book.id} to={`/book/${book.id}`}>
+                          <motion.div
+                            className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow"
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                          >
+                            <div className={`${book.coverColor} aspect-[16/9] relative overflow-hidden`}>
+                              {book.coverImageUrl && (
+                                <img src={book.coverImageUrl} alt={book.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                              )}
+                              <div className="absolute top-3 right-3">
+                                <WishlistButton bookId={book.id} />
+                              </div>
+                            </div>
+                            <div className="p-4">
+                              <h3 className="font-medium text-foreground line-clamp-1">{book.title}</h3>
+                              <p className="text-sm text-muted-foreground">{book.author}</p>
+                              <p className="text-xs text-muted-foreground mt-1 capitalize">{book.genre}</p>
+                            </div>
+                          </motion.div>
+                        </Link>
+                      ))}
                     </div>
                   </motion.section>
                 )}
