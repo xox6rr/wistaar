@@ -1,16 +1,20 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Link, Navigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { BookOpen, Play, Clock, Library as LibraryIcon, IndianRupee, Check } from "lucide-react";
+import { BookOpen, Library as LibraryIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAllReadingProgress, ReadingProgress } from "@/hooks/useReadingProgress";
 import { mockBooks, Book } from "@/data/books";
 import { usePurchases } from "@/hooks/usePurchases";
 import { useApprovedBooks } from "@/hooks/useApprovedBooks";
-import ReadingProgress3D from "@/components/ReadingProgress3D";
+import SearchBar from "@/components/SearchBar";
+import FilterSelect from "@/components/FilterSelect";
+import LibraryStats from "@/components/library/LibraryStats";
+import PurchasedBookCard from "@/components/library/PurchasedBookCard";
+import ContinueReadingCard from "@/components/library/ContinueReadingCard";
+import { toast } from "sonner";
 
 interface BookWithProgress extends Book {
   progress: ReadingProgress;
@@ -25,13 +29,37 @@ interface PurchasedBook {
   coverImageUrl: string | null;
   priceAmount: number;
   purchasedAt: string;
+  genre: string;
 }
+
+const statusFilters = ["All", "In Progress", "Completed", "Purchased"] as const;
 
 export default function Library() {
   const { user, loading: authLoading } = useAuth();
   const { allProgress, isLoading } = useAllReadingProgress();
   const { data: purchases, isLoading: purchasesLoading } = usePurchases();
   const { data: approvedBooks } = useApprovedBooks();
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [archivedIds, setArchivedIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("library-archived");
+      return stored ? new Set(JSON.parse(stored)) : new Set<string>();
+    } catch {
+      return new Set<string>();
+    }
+  });
+
+  const handleArchive = useCallback((bookId: string) => {
+    setArchivedIds((prev) => {
+      const next = new Set(prev);
+      next.add(bookId);
+      localStorage.setItem("library-archived", JSON.stringify([...next]));
+      return next;
+    });
+    toast.success("Book hidden from library");
+  }, []);
 
   const purchasedBooks = useMemo(() => {
     if (!purchases || !approvedBooks) return [];
@@ -47,6 +75,7 @@ export default function Library() {
           coverImageUrl: book.coverImageUrl,
           priceAmount: book.priceAmount,
           purchasedAt: p.purchased_at,
+          genre: book.genre,
         } as PurchasedBook;
       })
       .filter(Boolean) as PurchasedBook[];
@@ -60,36 +89,53 @@ export default function Library() {
         const progressPercent = (progress.current_chapter / book.chapters.length) * 100;
         return { ...book, progress, progressPercent };
       })
-      .filter((b): b is BookWithProgress => b !== null)
+      .filter((b): b is BookWithProgress => b !== null && !archivedIds.has(b.id))
       .sort((a, b) => new Date(b.progress.last_read_at).getTime() - new Date(a.progress.last_read_at).getTime());
-  }, [allProgress]);
+  }, [allProgress, archivedIds]);
+
+  // Apply search + status filter
+  const filteredProgress = useMemo(() => {
+    let list = booksWithProgress;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((b) => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+    }
+    if (statusFilter === "In Progress") list = list.filter((b) => b.progressPercent < 100);
+    if (statusFilter === "Completed") list = list.filter((b) => b.progressPercent >= 100);
+    if (statusFilter === "Purchased") list = [];
+    return list;
+  }, [booksWithProgress, search, statusFilter]);
+
+  const filteredPurchased = useMemo(() => {
+    if (statusFilter === "In Progress" || statusFilter === "Completed") return [];
+    let list = purchasedBooks;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((b) => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+    }
+    return list;
+  }, [purchasedBooks, search, statusFilter]);
+
+  // Stats
+  const completedCount = booksWithProgress.filter((b) => b.progressPercent >= 100).length;
+  const inProgressCount = booksWithProgress.filter((b) => b.progressPercent < 100).length;
 
   if (!authLoading && !user) {
     return <Navigate to="/auth" replace />;
   }
 
-  const formatLastRead = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
+  const anyLoading = isLoading || authLoading || purchasesLoading;
+  const hasBooks = booksWithProgress.length > 0 || purchasedBooks.length > 0;
+  const hasFilteredResults = filteredProgress.length > 0 || filteredPurchased.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <main className="pt-24 pb-16">
         <div className="container-editorial">
           {/* Header */}
-          <div className="mb-12">
+          <div className="mb-8">
             <h1 className="text-4xl md:text-5xl font-display font-medium text-foreground mb-4">
               My Library
             </h1>
@@ -98,8 +144,35 @@ export default function Library() {
             </p>
           </div>
 
-          {/* Loading State */}
-          {(isLoading || authLoading || purchasesLoading) && (
+          {/* Stats */}
+          {!anyLoading && (
+            <LibraryStats
+              totalBooks={booksWithProgress.length}
+              completedBooks={completedCount}
+              inProgressBooks={inProgressCount}
+              purchasedCount={purchasedBooks.length}
+            />
+          )}
+
+          {/* Search & Filter */}
+          {!anyLoading && hasBooks && (
+            <div className="flex flex-col sm:flex-row gap-3 mb-8">
+              <div className="flex-1">
+                <SearchBar value={search} onChange={setSearch} placeholder="Search your library..." />
+              </div>
+              <div className="w-full sm:w-48">
+                <FilterSelect
+                  value={statusFilter}
+                  onValueChange={setStatusFilter}
+                  options={statusFilters}
+                  placeholder="Status"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Loading */}
+          {anyLoading && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="bg-card rounded-lg p-6 animate-pulse">
@@ -112,7 +185,7 @@ export default function Library() {
           )}
 
           {/* Empty State */}
-          {!isLoading && !authLoading && !purchasesLoading && booksWithProgress.length === 0 && purchasedBooks.length === 0 && (
+          {!anyLoading && !hasBooks && (
             <div className="text-center py-20">
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
                 <LibraryIcon className="h-10 w-10 text-muted-foreground" />
@@ -132,92 +205,40 @@ export default function Library() {
             </div>
           )}
 
+          {/* No filter results */}
+          {!anyLoading && hasBooks && !hasFilteredResults && (search || statusFilter !== "All") && (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground">No books match your search or filter.</p>
+              <Button variant="ghost" size="sm" className="mt-3" onClick={() => { setSearch(""); setStatusFilter("All"); }}>
+                Clear Filters
+              </Button>
+            </div>
+          )}
+
           {/* Books Grid */}
-          {!isLoading && !authLoading && !purchasesLoading && (booksWithProgress.length > 0 || purchasedBooks.length > 0) && (
+          {!anyLoading && hasFilteredResults && (
             <>
-              {/* Purchased Books */}
-              {purchasedBooks.length > 0 && (
+              {filteredPurchased.length > 0 && (
                 <section className="mb-12">
                   <h2 className="text-xl font-display font-medium text-foreground mb-6">
                     Purchased Books
                   </h2>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {purchasedBooks.map((book) => (
-                      <Link key={book.id} to={`/book/${book.id}`}>
-                        <article className="group bg-card rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors">
-                          <div className="flex gap-5 p-5">
-                            <div className={`flex-shrink-0 w-16 h-24 ${book.coverColor} rounded overflow-hidden relative`}>
-                              {book.coverImageUrl && (
-                                <img src={book.coverImageUrl} alt={book.title} className="absolute inset-0 w-full h-full object-cover" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-display text-lg font-medium text-foreground leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-                                {book.title}
-                              </h3>
-                              <p className="text-sm text-muted-foreground mt-0.5">{book.author}</p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="secondary" className="text-xs gap-1">
-                                  <Check className="h-3 w-3" /> Owned
-                                </Badge>
-                                <Badge variant="outline" className="text-xs gap-0.5">
-                                  <IndianRupee className="h-3 w-3" />{book.priceAmount}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        </article>
-                      </Link>
+                    {filteredPurchased.map((book) => (
+                      <PurchasedBookCard key={book.id} book={book} />
                     ))}
                   </div>
                 </section>
               )}
 
-              {/* Continue Reading */}
-              {booksWithProgress.length > 0 && (
+              {filteredProgress.length > 0 && (
                 <section className="mb-12">
                   <h2 className="text-xl font-display font-medium text-foreground mb-6">
-                    Continue Reading
+                    {statusFilter === "Completed" ? "Completed Books" : "Continue Reading"}
                   </h2>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {booksWithProgress.map((book) => (
-                      <article
-                        key={book.id}
-                        className="group bg-card rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors"
-                      >
-                        <div className="flex gap-5 p-5">
-                          <div className="flex-shrink-0 flex items-center">
-                            <ReadingProgress3D percent={book.progressPercent} size={80} strokeWidth={6} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <Link to={`/book/${book.id}`}>
-                              <h3 className="font-display text-lg font-medium text-foreground leading-tight line-clamp-1 hover:text-accent transition-colors">
-                                {book.title}
-                              </h3>
-                            </Link>
-                            <p className="text-sm text-muted-foreground mt-0.5">{book.author}</p>
-                            <div className="flex items-center gap-3 mt-2">
-                              <Badge variant="secondary" className="text-xs">
-                                Ch {book.progress.current_chapter}/{book.chapters.length}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatLastRead(book.progress.last_read_at)}
-                              </span>
-                            </div>
-                            <div className="flex gap-2 mt-3">
-                              <Link to={`/read/${book.id}?chapter=${book.progress.current_chapter}`}>
-                                <Button size="sm" className="gap-2">
-                                  <Play className="h-4 w-4" /> Continue
-                                </Button>
-                              </Link>
-                              <Link to={`/book/${book.id}`}>
-                                <Button variant="outline" size="sm">Details</Button>
-                              </Link>
-                            </div>
-                          </div>
-                        </div>
-                      </article>
+                    {filteredProgress.map((book) => (
+                      <ContinueReadingCard key={book.id} book={book} onArchive={handleArchive} />
                     ))}
                   </div>
                 </section>
@@ -229,9 +250,7 @@ export default function Library() {
                     Discover More
                   </h2>
                   <Link to="/explore">
-                    <Button variant="ghost" size="sm">
-                      View All
-                    </Button>
+                    <Button variant="ghost" size="sm">View All</Button>
                   </Link>
                 </div>
                 <p className="text-muted-foreground">
