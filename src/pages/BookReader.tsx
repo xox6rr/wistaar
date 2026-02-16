@@ -1,7 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useBookChapters } from "@/hooks/useBookChapters";
 import { useApprovedBooks } from "@/hooks/useApprovedBooks";
+import { useHasPurchased } from "@/hooks/usePurchases";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,16 +14,30 @@ export default function BookReader() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: books } = useApprovedBooks();
-  const { data: chapters, isLoading } = useBookChapters(id);
+  const { data: allChapters, isLoading } = useBookChapters(id);
+  const { data: hasPurchased } = useHasPurchased(id);
+  const { user } = useAuth();
   const flipBookRef = useRef<PageFlipBookRef>(null);
+
+  const book = books?.find((b) => b.id === id);
+
+  // Filter chapters based on purchase status for premium books
+  const isPremium = book?.price === "premium";
+  const freeChapterLimit = book?.freeChapters ?? 3;
+  const isUnlocked = !isPremium || !!hasPurchased;
+
+  const chapters = useMemo(() => {
+    if (!allChapters) return undefined;
+    if (isUnlocked) return allChapters;
+    // Only show free chapters
+    return allChapters.filter((ch) => ch.chapter_number <= freeChapterLimit);
+  }, [allChapters, isUnlocked, freeChapterLimit]);
 
   const [currentPage, setCurrentPage] = useState(0);
   const [fontSize, setFontSize] = useState(17);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const book = books?.find((b) => b.id === id);
 
   // Auto-hide controls after inactivity
   const resetControlsTimer = useCallback(() => {
@@ -179,6 +195,9 @@ export default function BookReader() {
             currentPage={currentPage}
             onPageChange={handlePageChange}
             bookTitle={book?.title || "Book"}
+            bookId={id}
+            isPremiumLocked={isPremium && !isUnlocked}
+            priceAmount={book?.priceAmount}
           />
         </div>
       </div>

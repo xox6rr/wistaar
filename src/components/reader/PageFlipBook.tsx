@@ -1,5 +1,8 @@
 import { forwardRef, useCallback, useMemo, useRef, useImperativeHandle } from "react";
+import { Link } from "react-router-dom";
 import HTMLFlipBook from "react-pageflip";
+import { Lock, IndianRupee, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { BookChapter } from "@/hooks/useBookChapters";
 
 interface PageFlipBookProps {
@@ -8,6 +11,9 @@ interface PageFlipBookProps {
   currentPage: number;
   onPageChange: (page: number) => void;
   bookTitle: string;
+  bookId?: string;
+  isPremiumLocked?: boolean;
+  priceAmount?: number;
 }
 
 // Split chapter content into pages that fit the viewport
@@ -126,6 +132,44 @@ const Page = forwardRef<HTMLDivElement, {
     </div>
   );
 });
+// Paywall page component
+const PaywallPage = forwardRef<HTMLDivElement, { bookId?: string; priceAmount?: number }>(
+  ({ bookId, priceAmount }, ref) => (
+    <div
+      ref={ref}
+      className="bg-[#faf8f5] dark:bg-[#1a1a1a] h-full w-full overflow-hidden shadow-inner"
+      style={{ padding: "clamp(16px, 4%, 40px)" }}
+    >
+      <div className="h-full flex flex-col items-center justify-center text-center px-6">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+          <Lock className="w-8 h-8 text-primary" />
+        </div>
+        <h2 className="font-serif text-2xl text-foreground mb-3">
+          Free preview ends here
+        </h2>
+        <p className="text-muted-foreground mb-8 max-w-sm leading-relaxed">
+          You've reached the end of the free chapters. Purchase this book to continue reading.
+        </p>
+        <div className="flex flex-col gap-3">
+          <Link to={`/book/${bookId}`}>
+            <Button size="lg" className="gap-2 w-full">
+              <IndianRupee className="h-4 w-4" />
+              Buy for ₹{priceAmount || 0}
+            </Button>
+          </Link>
+          <Link to={`/book/${bookId}`}>
+            <Button variant="outline" size="lg" className="gap-2 w-full">
+              <ShoppingCart className="h-4 w-4" />
+              Back to Book Details
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+);
+PaywallPage.displayName = "PaywallPage";
+
 Page.displayName = "Page";
 
 export interface PageFlipBookRef {
@@ -137,7 +181,7 @@ export interface PageFlipBookRef {
 }
 
 const PageFlipBook = forwardRef<PageFlipBookRef, PageFlipBookProps>(
-  ({ chapters, fontSize, currentPage, onPageChange, bookTitle }, ref) => {
+  ({ chapters, fontSize, currentPage, onPageChange, bookTitle, bookId, isPremiumLocked, priceAmount }, ref) => {
     const flipBookRef = useRef<any>(null);
     const charsPerPage = fontSize <= 16 ? 1200 : fontSize <= 20 ? 900 : 650;
 
@@ -157,7 +201,7 @@ const PageFlipBook = forwardRef<PageFlipBookRef, PageFlipBookProps>(
       flipNext: () => flipBookRef.current?.pageFlip()?.flipNext(),
       flipPrev: () => flipBookRef.current?.pageFlip()?.flipPrev(),
       flipTo: (page: number) => flipBookRef.current?.pageFlip()?.flip(page),
-      getTotalPages: () => pages.length,
+      getTotalPages: () => pages.length + (isPremiumLocked ? 1 : 0),
       getChapterStartPage,
     }));
 
@@ -210,6 +254,9 @@ const PageFlipBook = forwardRef<PageFlipBookRef, PageFlipBookProps>(
               bookTitle={bookTitle}
             />
           ))}
+          {isPremiumLocked && (
+            <PaywallPage key="paywall" bookId={bookId} priceAmount={priceAmount} />
+          )}
         </HTMLFlipBook>
       </div>
     );
