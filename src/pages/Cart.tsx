@@ -1,4 +1,5 @@
 import { Navigate, Link } from "react-router-dom";
+import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -34,27 +35,12 @@ export default function Cart() {
   const handleBuy = async (bookId: string, title: string, amount: number) => {
     setPayingBookId(bookId);
     try {
-      const payuData = await initiatePayment.mutateAsync({ bookId, bookTitle: title, amount });
-
-      // Create and submit a form to PayU
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = payuData.payuUrl;
-
-      const fields = ["key", "txnid", "amount", "productinfo", "firstname", "email", "hash", "surl", "furl", "udf1", "udf2"];
-      fields.forEach((field) => {
-        if (payuData[field]) {
-          const input = document.createElement("input");
-          input.type = "hidden";
-          input.name = field;
-          input.value = payuData[field];
-          form.appendChild(input);
-        }
-      });
-
-      document.body.appendChild(form);
-      form.submit();
+      await initiatePayment.mutateAsync({ bookId, bookTitle: title, amount });
+      removeFromCart.mutate(bookId);
+      toast.success("Payment successful! Book added to your library.");
     } catch {
+      toast.error("Payment failed. Please try again.");
+    } finally {
       setPayingBookId(null);
     }
   };

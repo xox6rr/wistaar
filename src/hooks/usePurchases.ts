@@ -51,6 +51,7 @@ export function useHasPurchased(bookId: string | undefined) {
 }
 
 export function useInitiatePayment() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -63,20 +64,29 @@ export function useInitiatePayment() {
       bookTitle: string;
       amount: number;
     }) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Please log in to purchase");
+      if (!user) throw new Error("Please log in to purchase");
 
-      const returnUrl = `${window.location.origin}/book/${bookId}`;
+      // Mock payment: directly insert a completed purchase
+      const { error } = await supabase
+        .from("book_purchases")
+        .upsert(
+          {
+            user_id: user.id,
+            book_id: bookId,
+            amount,
+            payment_status: "completed",
+            transaction_id: `MOCK_${Date.now()}`,
+            payu_txnid: `MOCK_${Date.now()}`,
+          },
+          { onConflict: "user_id,book_id" }
+        );
 
-      const response = await supabase.functions.invoke("payu-payment/initiate", {
-        body: { bookId, bookTitle, amount, returnUrl },
-      });
-
-      if (response.error) throw new Error(response.error.message);
-      return response.data;
+      if (error) throw error;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["has-purchased"] });
     },
   });
 }

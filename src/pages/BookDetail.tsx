@@ -270,24 +270,17 @@ export default function BookDetail() {
                         if (!user) { navigate("/auth"); return; }
                         setPaying(true);
                         try {
-                          const payuData = await initiatePayment.mutateAsync({
+                          await initiatePayment.mutateAsync({
                             bookId: book.id,
                             bookTitle: book.title,
                             amount: book.priceAmount,
                           });
-                          const form = document.createElement("form");
-                          form.method = "POST";
-                          form.action = payuData.payuUrl;
-                          ["key", "txnid", "amount", "productinfo", "firstname", "email", "hash", "surl", "furl", "udf1", "udf2"].forEach((f) => {
-                            if (payuData[f]) {
-                              const input = document.createElement("input");
-                              input.type = "hidden"; input.name = f; input.value = payuData[f];
-                              form.appendChild(input);
-                            }
-                          });
-                          document.body.appendChild(form);
-                          form.submit();
-                        } catch { setPaying(false); }
+                          toast.success("Payment successful! You now have full access.");
+                        } catch {
+                          toast.error("Payment failed. Please try again.");
+                        } finally {
+                          setPaying(false);
+                        }
                       }}
                     >
                       {paying ? (
