@@ -5,6 +5,7 @@ import { useBookChapters } from "@/hooks/useBookChapters";
 import { useApprovedBooks } from "@/hooks/useApprovedBooks";
 import { useHasPurchased } from "@/hooks/usePurchases";
 import { useAuth } from "@/hooks/useAuth";
+import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export default function BookReader() {
   const { data: allChapters, isLoading } = useBookChapters(id);
   const { data: hasPurchased } = useHasPurchased(id);
   const { user } = useAuth();
+  const { saveProgress } = useReadingProgress(id);
   const flipBookRef = useRef<PageFlipBookRef>(null);
 
   const book = books?.find((b) => b.id === id);
@@ -88,10 +90,23 @@ export default function BookReader() {
     }
   }, []);
 
+  const lastSavedChapterRef = useRef<number>(0);
+
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
     resetControlsTimer();
-  }, [resetControlsTimer]);
+
+    // Save reading progress for the current chapter
+    if (chapters && chapters.length > 0) {
+      const totalPages = flipBookRef.current?.getTotalPages() || 1;
+      const pagesPerChapter = totalPages / chapters.length;
+      const chapterNum = Math.min(chapters.length, Math.floor(page / pagesPerChapter) + 1);
+      if (chapterNum !== lastSavedChapterRef.current) {
+        lastSavedChapterRef.current = chapterNum;
+        saveProgress(chapterNum, page);
+      }
+    }
+  }, [resetControlsTimer, chapters, saveProgress]);
 
   const adjustFontSize = useCallback((delta: number) => {
     setFontSize((prev) => Math.min(26, Math.max(14, prev + delta)));
