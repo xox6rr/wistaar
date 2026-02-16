@@ -265,7 +265,7 @@ export default function BookDetail() {
                     <Button
                       size="lg"
                       className="gap-2"
-                      disabled={paying || !user}
+                      disabled={paying}
                       onClick={async () => {
                         if (!user) { navigate("/auth"); return; }
                         setPaying(true);
@@ -304,7 +304,7 @@ export default function BookDetail() {
                       variant="outline"
                       size="lg"
                       className="gap-2"
-                      disabled={isInCart || !user}
+                      disabled={isInCart}
                       onClick={() => {
                         if (!user) { navigate("/auth"); return; }
                         addToCart.mutate(book.id);
