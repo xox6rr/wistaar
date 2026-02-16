@@ -214,6 +214,24 @@ const PageFlipBook = forwardRef<PageFlipBookRef, PageFlipBookProps>(
 
     if (pages.length === 0) return null;
 
+    // Build all page elements upfront — react-pageflip cannot handle conditional children
+    const allPages = pages.map((pageData, i) => (
+      <Page
+        key={i}
+        pageData={pageData}
+        pageNumber={i}
+        totalPages={pages.length}
+        fontSize={fontSize}
+        bookTitle={bookTitle}
+      />
+    ));
+
+    if (isPremiumLocked) {
+      allPages.push(
+        <PaywallPage key="paywall" bookId={bookId} priceAmount={priceAmount} />
+      );
+    }
+
     return (
       <div className="flex items-center justify-center w-full h-full">
         {/* @ts-ignore - react-pageflip types */}
@@ -244,19 +262,7 @@ const PageFlipBook = forwardRef<PageFlipBookRef, PageFlipBookProps>(
           className="book-flip-container"
           style={{}}
         >
-          {pages.map((pageData, i) => (
-            <Page
-              key={i}
-              pageData={pageData}
-              pageNumber={i}
-              totalPages={pages.length}
-              fontSize={fontSize}
-              bookTitle={bookTitle}
-            />
-          ))}
-          {isPremiumLocked && (
-            <PaywallPage key="paywall" bookId={bookId} priceAmount={priceAmount} />
-          )}
+          {allPages}
         </HTMLFlipBook>
       </div>
     );
