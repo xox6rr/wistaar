@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { BookOpen, CheckCircle, XCircle, Clock, Download, Eye } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Clock, Download, Eye, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface Submission {
   id: string;
@@ -100,6 +101,17 @@ export default function AdminDashboard() {
       toast({ title: 'Action failed', description: err.message, variant: 'destructive' });
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async (sub: Submission) => {
+    try {
+      const { error } = await supabase.from('book_submissions').delete().eq('id', sub.id);
+      if (error) throw error;
+      toast({ title: 'Book removed', description: `"${sub.title}" has been removed.` });
+      await loadSubmissions();
+    } catch (err: any) {
+      toast({ title: 'Delete failed', description: err.message, variant: 'destructive' });
     }
   };
 
@@ -206,6 +218,24 @@ export default function AdminDashboard() {
                               Review
                             </Button>
                           )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs text-destructive hover:text-destructive">
+                                <Trash2 className="w-3 h-3" />
+                                Remove
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove "{sub.title}"?</AlertDialogTitle>
+                                <AlertDialogDescription>This will permanently remove this book from the platform. This action cannot be undone.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(sub)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     </CardContent>
