@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useBookChapters } from "@/hooks/useBookChapters";
 import { useApprovedBooks } from "@/hooks/useApprovedBooks";
 import { useHasPurchased } from "@/hooks/usePurchases";
@@ -21,7 +22,6 @@ export default function BookReader() {
 
   const book = books?.find((b) => b.id === id);
 
-  // Filter chapters based on purchase status for premium books
   const isPremium = book?.price === "premium";
   const freeChapterLimit = book?.freeChapters ?? 3;
   const isUnlocked = !isPremium || !!hasPurchased;
@@ -29,7 +29,6 @@ export default function BookReader() {
   const chapters = useMemo(() => {
     if (!allChapters) return undefined;
     if (isUnlocked) return allChapters;
-    // Only show free chapters
     return allChapters.filter((ch) => ch.chapter_number <= freeChapterLimit);
   }, [allChapters, isUnlocked, freeChapterLimit]);
 
@@ -39,7 +38,6 @@ export default function BookReader() {
   const [showControls, setShowControls] = useState(true);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-hide controls after inactivity
   const resetControlsTimer = useCallback(() => {
     setShowControls(true);
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
@@ -50,14 +48,16 @@ export default function BookReader() {
 
   useEffect(() => {
     const handleMouseMove = () => resetControlsTimer();
+    const handleTouch = () => resetControlsTimer();
     window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("touchstart", handleTouch, { passive: true });
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchstart", handleTouch);
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, [resetControlsTimer]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === " ") {
@@ -74,11 +74,8 @@ export default function BookReader() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [isFullscreen]);
 
-  // Fullscreen change listener
   useEffect(() => {
-    const handler = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
@@ -100,10 +97,8 @@ export default function BookReader() {
     setFontSize((prev) => Math.min(26, Math.max(14, prev + delta)));
   }, []);
 
-  // Find current chapter based on page
   const getCurrentChapter = useCallback(() => {
     if (!chapters || chapters.length === 0) return 1;
-    // Simple heuristic: find which chapter this page belongs to
     const totalPages = flipBookRef.current?.getTotalPages() || 1;
     const pagesPerChapter = totalPages / chapters.length;
     return Math.min(chapters.length, Math.floor(currentPage / pagesPerChapter) + 1);
@@ -116,32 +111,40 @@ export default function BookReader() {
     }
   }, []);
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center animate-fade-in">
-          <BookOpen className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4 animate-pulse" />
-          <p className="text-muted-foreground">Loading book...</p>
-        </div>
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20 }}
+        >
+          <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/40 mx-auto mb-4 animate-pulse" />
+          <p className="text-sm sm:text-base text-muted-foreground">Loading book...</p>
+        </motion.div>
       </div>
     );
   }
 
-  // No chapters available
   if (!chapters || chapters.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto px-6">
-          <BookOpen className="w-16 h-16 text-muted-foreground/30 mx-auto mb-6" />
-          <h1 className="font-serif text-2xl text-foreground mb-3">
+        <motion.div
+          className="text-center max-w-md mx-auto px-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <BookOpen className="w-14 h-14 sm:w-16 sm:h-16 text-muted-foreground/30 mx-auto mb-6" />
+          <h1 className="font-serif text-xl sm:text-2xl text-foreground mb-3">
             Content not available yet
           </h1>
-          <p className="text-muted-foreground mb-8">
+          <p className="text-sm sm:text-base text-muted-foreground mb-8">
             This book's content is being processed. Please check back shortly.
           </p>
           <Button onClick={() => navigate(-1)}>Go Back</Button>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -179,15 +182,21 @@ export default function BookReader() {
       />
 
       {/* Book */}
-      <div
+      <motion.div
         className={cn(
           "flex items-center justify-center transition-all duration-300",
-          showControls ? "pt-16 pb-4" : "pt-4 pb-4",
+          showControls ? "pt-14 sm:pt-16 pb-2 sm:pb-4" : "pt-2 sm:pt-4 pb-2 sm:pb-4",
           "min-h-screen"
         )}
         onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <div className="w-full max-w-[1100px] mx-auto px-4" style={{ height: "calc(100vh - 100px)" }}>
+        <div
+          className="w-full max-w-[1100px] mx-auto px-2 sm:px-4"
+          style={{ height: "calc(100vh - 80px)" }}
+        >
           <PageFlipBook
             ref={flipBookRef}
             chapters={chapters}
@@ -200,12 +209,12 @@ export default function BookReader() {
             priceAmount={book?.priceAmount}
           />
         </div>
-      </div>
+      </motion.div>
 
-      {/* Tap zones for navigation on mobile */}
+      {/* Tap zones for mobile */}
       <div className="fixed inset-0 z-10 pointer-events-none">
         <button
-          className="absolute left-0 top-16 bottom-0 w-1/5 pointer-events-auto opacity-0"
+          className="absolute left-0 top-14 sm:top-16 bottom-0 w-1/4 sm:w-1/5 pointer-events-auto opacity-0 active:bg-black/5 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             flipBookRef.current?.flipPrev();
@@ -213,7 +222,7 @@ export default function BookReader() {
           aria-label="Previous page"
         />
         <button
-          className="absolute right-0 top-16 bottom-0 w-1/5 pointer-events-auto opacity-0"
+          className="absolute right-0 top-14 sm:top-16 bottom-0 w-1/4 sm:w-1/5 pointer-events-auto opacity-0 active:bg-black/5 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             flipBookRef.current?.flipNext();
