@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      book_chapters: {
+        Row: {
+          book_id: string
+          chapter_number: number
+          content: string
+          created_at: string
+          id: string
+          title: string
+        }
+        Insert: {
+          book_id: string
+          chapter_number: number
+          content?: string
+          created_at?: string
+          id?: string
+          title?: string
+        }
+        Update: {
+          book_id?: string
+          chapter_number?: number
+          content?: string
+          created_at?: string
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_chapters_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "book_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       book_submissions: {
         Row: {
           admin_feedback: string | null
@@ -203,6 +238,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_book_approved: { Args: { book_uuid: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "author" | "user"
