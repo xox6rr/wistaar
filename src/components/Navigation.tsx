@@ -12,7 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, ShoppingCart } from "lucide-react";
+import { useCart } from "@/hooks/useCart";
 
 const Navigation = () => {
   const { user, signOut, loading } = useAuth();
@@ -21,6 +22,8 @@ const Navigation = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { data: cartItems } = useCart();
+  const cartCount = cartItems?.length || 0;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -71,6 +74,14 @@ const Navigation = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-2">
+            {user && cartCount > 0 && (
+              <Link to="/cart" className="relative">
+                <ShoppingCart className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+                <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] font-medium rounded-full h-4 w-4 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              </Link>
+            )}
             <ThemeToggle />
             {loading ? (
               <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />

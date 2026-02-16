@@ -15,6 +15,7 @@ import BookDetail from "@/pages/BookDetail";
 import Read from "@/pages/Read";
 import BookReader from "@/pages/BookReader";
 import Library from "@/pages/Library";
+import Cart from "@/pages/Cart";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 
@@ -119,6 +120,14 @@ const AnimatedRoutes = () => {
           element={
             <PageTransition skeleton={<LibrarySkeleton />}>
               <Library />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/cart"
+          element={
+            <PageTransition>
+              <Cart />
             </PageTransition>
           }
         />

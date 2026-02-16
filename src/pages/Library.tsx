@@ -4,10 +4,12 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Play, Clock, Library as LibraryIcon } from "lucide-react";
+import { BookOpen, Play, Clock, Library as LibraryIcon, IndianRupee, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAllReadingProgress, ReadingProgress } from "@/hooks/useReadingProgress";
 import { mockBooks, Book } from "@/data/books";
+import { usePurchases } from "@/hooks/usePurchases";
+import { useApprovedBooks } from "@/hooks/useApprovedBooks";
 import ReadingProgress3D from "@/components/ReadingProgress3D";
 
 interface BookWithProgress extends Book {
@@ -15,9 +17,40 @@ interface BookWithProgress extends Book {
   progressPercent: number;
 }
 
+interface PurchasedBook {
+  id: string;
+  title: string;
+  author: string;
+  coverColor: string;
+  coverImageUrl: string | null;
+  priceAmount: number;
+  purchasedAt: string;
+}
+
 export default function Library() {
   const { user, loading: authLoading } = useAuth();
   const { allProgress, isLoading } = useAllReadingProgress();
+  const { data: purchases, isLoading: purchasesLoading } = usePurchases();
+  const { data: approvedBooks } = useApprovedBooks();
+
+  const purchasedBooks = useMemo(() => {
+    if (!purchases || !approvedBooks) return [];
+    return purchases
+      .map((p) => {
+        const book = approvedBooks.find((b) => b.id === p.book_id);
+        if (!book) return null;
+        return {
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          coverColor: book.coverColor,
+          coverImageUrl: book.coverImageUrl,
+          priceAmount: book.priceAmount,
+          purchasedAt: p.purchased_at,
+        } as PurchasedBook;
+      })
+      .filter(Boolean) as PurchasedBook[];
+  }, [purchases, approvedBooks]);
 
   const booksWithProgress = useMemo(() => {
     return allProgress
@@ -66,7 +99,7 @@ export default function Library() {
           </div>
 
           {/* Loading State */}
-          {(isLoading || authLoading) && (
+          {(isLoading || authLoading || purchasesLoading) && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="bg-card rounded-lg p-6 animate-pulse">
@@ -79,7 +112,7 @@ export default function Library() {
           )}
 
           {/* Empty State */}
-          {!isLoading && !authLoading && booksWithProgress.length === 0 && (
+          {!isLoading && !authLoading && !purchasesLoading && booksWithProgress.length === 0 && purchasedBooks.length === 0 && (
             <div className="text-center py-20">
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
                 <LibraryIcon className="h-10 w-10 text-muted-foreground" />
@@ -100,68 +133,95 @@ export default function Library() {
           )}
 
           {/* Books Grid */}
-          {!isLoading && !authLoading && booksWithProgress.length > 0 && (
+          {!isLoading && !authLoading && !purchasesLoading && (booksWithProgress.length > 0 || purchasedBooks.length > 0) && (
             <>
-              <section className="mb-12">
-                <h2 className="text-xl font-display font-medium text-foreground mb-6">
-                  Continue Reading
-                </h2>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {booksWithProgress.map((book) => (
-                    <article
-                      key={book.id}
-                      className="group bg-card rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors"
-                    >
-                      <div className="flex gap-5 p-5">
-                        {/* 3D Progress Ring */}
-                        <div className="flex-shrink-0 flex items-center">
-                          <ReadingProgress3D
-                            percent={book.progressPercent}
-                            size={80}
-                            strokeWidth={6}
-                          />
-                        </div>
-
-                        {/* Book Info */}
-                        <div className="flex-1 min-w-0">
-                          <Link to={`/book/${book.id}`}>
-                            <h3 className="font-display text-lg font-medium text-foreground leading-tight line-clamp-1 hover:text-accent transition-colors">
-                              {book.title}
-                            </h3>
-                          </Link>
-                          <p className="text-sm text-muted-foreground mt-0.5">
-                            {book.author}
-                          </p>
-
-                          <div className="flex items-center gap-3 mt-2">
-                            <Badge variant="secondary" className="text-xs">
-                              Ch {book.progress.current_chapter}/{book.chapters.length}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {formatLastRead(book.progress.last_read_at)}
-                            </span>
+              {/* Purchased Books */}
+              {purchasedBooks.length > 0 && (
+                <section className="mb-12">
+                  <h2 className="text-xl font-display font-medium text-foreground mb-6">
+                    Purchased Books
+                  </h2>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {purchasedBooks.map((book) => (
+                      <Link key={book.id} to={`/book/${book.id}`}>
+                        <article className="group bg-card rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors">
+                          <div className="flex gap-5 p-5">
+                            <div className={`flex-shrink-0 w-16 h-24 ${book.coverColor} rounded overflow-hidden relative`}>
+                              {book.coverImageUrl && (
+                                <img src={book.coverImageUrl} alt={book.title} className="absolute inset-0 w-full h-full object-cover" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-display text-lg font-medium text-foreground leading-tight line-clamp-1 group-hover:text-primary transition-colors">
+                                {book.title}
+                              </h3>
+                              <p className="text-sm text-muted-foreground mt-0.5">{book.author}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="secondary" className="text-xs gap-1">
+                                  <Check className="h-3 w-3" /> Owned
+                                </Badge>
+                                <Badge variant="outline" className="text-xs gap-0.5">
+                                  <IndianRupee className="h-3 w-3" />{book.priceAmount}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
+                        </article>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
 
-                          <div className="flex gap-2 mt-3">
-                            <Link to={`/read/${book.id}?chapter=${book.progress.current_chapter}`}>
-                              <Button size="sm" className="gap-2">
-                                <Play className="h-4 w-4" />
-                                Continue
-                              </Button>
-                            </Link>
+              {/* Continue Reading */}
+              {booksWithProgress.length > 0 && (
+                <section className="mb-12">
+                  <h2 className="text-xl font-display font-medium text-foreground mb-6">
+                    Continue Reading
+                  </h2>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {booksWithProgress.map((book) => (
+                      <article
+                        key={book.id}
+                        className="group bg-card rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors"
+                      >
+                        <div className="flex gap-5 p-5">
+                          <div className="flex-shrink-0 flex items-center">
+                            <ReadingProgress3D percent={book.progressPercent} size={80} strokeWidth={6} />
+                          </div>
+                          <div className="flex-1 min-w-0">
                             <Link to={`/book/${book.id}`}>
-                              <Button variant="outline" size="sm">
-                                Details
-                              </Button>
+                              <h3 className="font-display text-lg font-medium text-foreground leading-tight line-clamp-1 hover:text-accent transition-colors">
+                                {book.title}
+                              </h3>
                             </Link>
+                            <p className="text-sm text-muted-foreground mt-0.5">{book.author}</p>
+                            <div className="flex items-center gap-3 mt-2">
+                              <Badge variant="secondary" className="text-xs">
+                                Ch {book.progress.current_chapter}/{book.chapters.length}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatLastRead(book.progress.last_read_at)}
+                              </span>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Link to={`/read/${book.id}?chapter=${book.progress.current_chapter}`}>
+                                <Button size="sm" className="gap-2">
+                                  <Play className="h-4 w-4" /> Continue
+                                </Button>
+                              </Link>
+                              <Link to={`/book/${book.id}`}>
+                                <Button variant="outline" size="sm">Details</Button>
+                              </Link>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <section className="pt-8 border-t border-border">
                 <div className="flex items-center justify-between mb-6">

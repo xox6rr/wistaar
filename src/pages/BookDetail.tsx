@@ -1,4 +1,5 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { mockBooks } from "@/data/books";
 import { useApprovedBooks } from "@/hooks/useApprovedBooks";
 import { useBookChapters } from "@/hooks/useBookChapters";
@@ -6,15 +7,38 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, BookOpen, Star, Calendar, Play, IndianRupee, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, BookOpen, Star, Calendar, Play, IndianRupee, Loader2, ShoppingCart, Check } from "lucide-react";
 import { useReadingProgress } from "@/hooks/useReadingProgress";
+import { useHasPurchased, useInitiatePayment } from "@/hooks/usePurchases";
+import { useCart, useAddToCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const { data: approvedBooks, isLoading: loadingApproved } = useApprovedBooks();
   const { data: chapters, isLoading: loadingChapters } = useBookChapters(id);
   const { progress, isLoading: loadingProgress } = useReadingProgress(id);
+  const { data: hasPurchased } = useHasPurchased(id);
+  const { data: cartItems } = useCart();
+  const addToCart = useAddToCart();
+  const initiatePayment = useInitiatePayment();
+  const [paying, setPaying] = useState(false);
+
+  const isInCart = cartItems?.some((item) => item.book_id === id);
+
+  // Show toast on payment redirect
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      toast.success("Payment successful! You now have full access to this book.");
+    } else if (payment === "failed") {
+      toast.error("Payment failed. Please try again.");
+    }
+  }, [searchParams]);
 
   // Try approved book first, then fall back to mock
   const approvedBook = approvedBooks?.find((b) => b.id === id);
@@ -203,28 +227,100 @@ export default function BookDetail() {
 
               {/* CTA */}
               <div className="flex flex-wrap gap-4">
-                {progress && progress.current_chapter > 1 ? (
+                {/* Free book or already purchased — show read buttons */}
+                {(book.price !== "premium" || hasPurchased) ? (
                   <>
-                    <Link to={continueUrl}>
-                      <Button size="lg" className="gap-2">
-                        <Play className="h-5 w-5" />
-                        Continue Reading
-                      </Button>
-                    </Link>
+                    {progress && progress.current_chapter > 1 ? (
+                      <>
+                        <Link to={continueUrl}>
+                          <Button size="lg" className="gap-2">
+                            <Play className="h-5 w-5" />
+                            Continue Reading
+                          </Button>
+                        </Link>
+                        <Link to={readUrl}>
+                          <Button variant="outline" size="lg" className="gap-2">
+                            <BookOpen className="h-5 w-5" />
+                            Start Over
+                          </Button>
+                        </Link>
+                      </>
+                    ) : (
+                      <Link to={readUrl}>
+                        <Button size="lg" className="gap-2">
+                          <BookOpen className="h-5 w-5" />
+                          Start Reading
+                        </Button>
+                      </Link>
+                    )}
+                    {hasPurchased && (
+                      <Badge variant="secondary" className="self-center text-sm gap-1">
+                        <Check className="h-3.5 w-3.5" /> Purchased
+                      </Badge>
+                    )}
+                  </>
+                ) : (
+                  /* Premium book not purchased — show buy + cart */
+                  <>
+                    <Button
+                      size="lg"
+                      className="gap-2"
+                      disabled={paying || !user}
+                      onClick={async () => {
+                        if (!user) { navigate("/auth"); return; }
+                        setPaying(true);
+                        try {
+                          const payuData = await initiatePayment.mutateAsync({
+                            bookId: book.id,
+                            bookTitle: book.title,
+                            amount: book.priceAmount,
+                          });
+                          const form = document.createElement("form");
+                          form.method = "POST";
+                          form.action = payuData.payuUrl;
+                          ["key", "txnid", "amount", "productinfo", "firstname", "email", "hash", "surl", "furl", "udf1", "udf2"].forEach((f) => {
+                            if (payuData[f]) {
+                              const input = document.createElement("input");
+                              input.type = "hidden"; input.name = f; input.value = payuData[f];
+                              form.appendChild(input);
+                            }
+                          });
+                          document.body.appendChild(form);
+                          form.submit();
+                        } catch { setPaying(false); }
+                      }}
+                    >
+                      {paying ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <>
+                          <IndianRupee className="h-5 w-5" />
+                          Buy for ₹{book.priceAmount}
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="gap-2"
+                      disabled={isInCart || !user}
+                      onClick={() => {
+                        if (!user) { navigate("/auth"); return; }
+                        addToCart.mutate(book.id);
+                      }}
+                    >
+                      <ShoppingCart className="h-5 w-5" />
+                      {isInCart ? "In Cart" : "Buy Later"}
+                    </Button>
+
                     <Link to={readUrl}>
-                      <Button variant="outline" size="lg" className="gap-2">
+                      <Button variant="ghost" size="lg" className="gap-2">
                         <BookOpen className="h-5 w-5" />
-                        Start Over
+                        Preview Free Chapters
                       </Button>
                     </Link>
                   </>
-                ) : (
-                  <Link to={readUrl}>
-                    <Button size="lg" className="gap-2">
-                      <BookOpen className="h-5 w-5" />
-                      Start Reading
-                    </Button>
-                  </Link>
                 )}
               </div>
 
