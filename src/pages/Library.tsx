@@ -7,20 +7,15 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Library as LibraryIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAllReadingProgress, ReadingProgress } from "@/hooks/useReadingProgress";
-import { mockBooks, Book } from "@/data/books";
+import { mockBooks } from "@/data/books";
 import { usePurchases } from "@/hooks/usePurchases";
 import { useApprovedBooks } from "@/hooks/useApprovedBooks";
 import SearchBar from "@/components/SearchBar";
 import FilterSelect from "@/components/FilterSelect";
 import LibraryStats from "@/components/library/LibraryStats";
 import PurchasedBookCard from "@/components/library/PurchasedBookCard";
-import ContinueReadingCard from "@/components/library/ContinueReadingCard";
+import ContinueReadingCard, { type LibraryBookWithProgress } from "@/components/library/ContinueReadingCard";
 import { toast } from "sonner";
-
-interface BookWithProgress extends Book {
-  progress: ReadingProgress;
-  progressPercent: number;
-}
 
 interface PurchasedBook {
   id: string;
@@ -87,17 +82,45 @@ export default function Library() {
       .filter(Boolean) as PurchasedBook[];
   }, [purchases, approvedBooks]);
 
+  // Build unified progress list from both mock books AND approved (DB) books
   const booksWithProgress = useMemo(() => {
     return allProgress
-      .map((progress) => {
-        const book = mockBooks.find((b) => b.id === progress.book_id);
-        if (!book) return null;
-        const progressPercent = (progress.current_chapter / book.chapters.length) * 100;
-        return { ...book, progress, progressPercent };
+      .map((progress): LibraryBookWithProgress | null => {
+        // Try mock books first
+        const mock = mockBooks.find((b) => b.id === progress.book_id);
+        if (mock) {
+          const progressPercent = Math.min(100, (progress.current_chapter / mock.chapters.length) * 100);
+          return {
+            id: mock.id,
+            title: mock.title,
+            author: mock.author,
+            totalChapters: mock.chapters.length,
+            coverColor: mock.coverColor,
+            progress,
+            progressPercent,
+          };
+        }
+        // Try approved books from DB
+        const approved = approvedBooks?.find((b) => b.id === progress.book_id);
+        if (approved) {
+          const total = approved.totalChapters || 1;
+          const progressPercent = Math.min(100, (progress.current_chapter / total) * 100);
+          return {
+            id: approved.id,
+            title: approved.title,
+            author: approved.author,
+            totalChapters: total,
+            coverColor: approved.coverColor,
+            coverImageUrl: approved.coverImageUrl,
+            progress,
+            progressPercent,
+          };
+        }
+        return null;
       })
-      .filter((b): b is BookWithProgress => b !== null && !archivedIds.has(b.id))
+      .filter((b): b is LibraryBookWithProgress => b !== null && !archivedIds.has(b.id))
       .sort((a, b) => new Date(b.progress.last_read_at).getTime() - new Date(a.progress.last_read_at).getTime());
-  }, [allProgress, archivedIds]);
+  }, [allProgress, archivedIds, approvedBooks]);
 
   const filteredProgress = useMemo(() => {
     let list = booksWithProgress;
@@ -292,7 +315,7 @@ export default function Library() {
                     </Link>
                   </div>
                   <p className="text-sm sm:text-base text-muted-foreground">
-                    Explore our collection of {mockBooks.length} books and find your next read.
+                    Explore our collection and find your next read.
                   </p>
                 </motion.section>
               </motion.div>
