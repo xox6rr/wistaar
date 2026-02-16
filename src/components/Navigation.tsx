@@ -61,7 +61,7 @@ const Navigation = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled || isOpen ? 'bg-background/95 backdrop-blur-md border-b border-border shadow-sm' : ''
+        isScrolled || isOpen ? 'bg-background border-b border-border shadow-sm' : ''
       }`}
     >
       <nav className="container-main">
@@ -171,7 +171,7 @@ const Navigation = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="md:hidden fixed inset-0 top-14 bg-background/98 backdrop-blur-lg z-40"
+            className="md:hidden fixed inset-0 top-14 bg-background z-40"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
