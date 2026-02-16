@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.extract-chapters]
 verify_jwt = false
+
+[functions.payu-payment]
+verify_jwt = false
