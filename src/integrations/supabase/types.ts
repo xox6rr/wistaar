@@ -49,6 +49,47 @@ export type Database = {
           },
         ]
       }
+      book_purchases: {
+        Row: {
+          amount: number
+          book_id: string
+          id: string
+          payment_status: string
+          payu_txnid: string | null
+          purchased_at: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          book_id: string
+          id?: string
+          payment_status?: string
+          payu_txnid?: string | null
+          purchased_at?: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          book_id?: string
+          id?: string
+          payment_status?: string
+          payu_txnid?: string | null
+          purchased_at?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_purchases_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "book_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       book_submissions: {
         Row: {
           admin_feedback: string | null
@@ -145,6 +186,35 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_items: {
+        Row: {
+          added_at: string
+          book_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          book_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          book_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "book_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -231,6 +301,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_purchased_book: {
+        Args: { p_book_id: string; p_user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
