@@ -6,17 +6,19 @@ import { Play, Clock, Archive } from "lucide-react";
 import ReadingProgress3D from "@/components/ReadingProgress3D";
 import { ReadingProgress } from "@/hooks/useReadingProgress";
 
-interface BookWithProgress {
+export interface LibraryBookWithProgress {
   id: string;
   title: string;
   author: string;
-  chapters: { id: string; number: number; title: string; readingTime: string }[];
+  totalChapters: number;
+  coverColor?: string;
+  coverImageUrl?: string | null;
   progress: ReadingProgress;
   progressPercent: number;
 }
 
 interface Props {
-  book: BookWithProgress;
+  book: LibraryBookWithProgress;
   index?: number;
   onArchive?: (bookId: string) => void;
 }
@@ -60,7 +62,7 @@ export default function ContinueReadingCard({ book, index = 0, onArchive }: Prop
           <p className="text-sm text-muted-foreground mt-0.5">{book.author}</p>
           <div className="flex items-center gap-2 sm:gap-3 mt-2 flex-wrap">
             <Badge variant={isCompleted ? "default" : "secondary"} className="text-xs">
-              {isCompleted ? "Completed" : `Ch ${book.progress.current_chapter}/${book.chapters.length}`}
+              {isCompleted ? "Completed" : `Ch ${book.progress.current_chapter}/${book.totalChapters}`}
             </Badge>
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
