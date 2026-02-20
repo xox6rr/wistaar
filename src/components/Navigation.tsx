@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, X, User, LogOut, ShoppingCart, BookOpen, Compass, PenLine, Shield, Library } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import NotificationBell from "@/components/NotificationBell";
 
 const Navigation = () => {
   const { user, signOut, loading } = useAuth();
@@ -94,6 +95,7 @@ const Navigation = () => {
                 </span>
               </Link>
             )}
+            {user && <NotificationBell />}
             <ThemeToggle />
             {loading ? (
               <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
@@ -145,6 +147,7 @@ const Navigation = () => {
                 </span>
               </Link>
             )}
+            {user && <NotificationBell />}
             <ThemeToggle />
             <button
               className="p-2 rounded-md hover:bg-muted/50 transition-colors"
