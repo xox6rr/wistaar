@@ -104,6 +104,21 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
+      // Notify the author in-app
+      const notifTitle = action === 'approved'
+        ? `✅ "${selectedSub.title}" has been approved!`
+        : `❌ "${selectedSub.title}" was not approved`;
+      const notifMessage = action === 'approved'
+        ? `Congratulations! Your book is now live on Wistaar and available for readers.`
+        : `Your submission was reviewed. ${feedback.trim() ? `Feedback: ${feedback.trim()}` : 'Please review and resubmit.'}`;
+
+      await supabase.from('notifications' as any).insert({
+        user_id: selectedSub.author_id,
+        title: notifTitle,
+        message: notifMessage,
+        type: action === 'approved' ? 'book_approved' : 'book_rejected',
+      } as any);
+
       if (action === 'approved' && selectedSub.manuscript_url) {
         toast({ title: 'Book Approved!', description: `Extracting chapters from "${selectedSub.title}"...` });
         try {

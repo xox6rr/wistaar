@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -14,6 +15,33 @@ export interface Notification {
 
 export function useNotifications() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Realtime subscription — invalidates the query whenever the user's
+  // notifications table changes (INSERT or UPDATE)
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   return useQuery({
     queryKey: ["notifications", user?.id],
@@ -29,7 +57,8 @@ export function useNotifications() {
       if (error) throw error;
       return (data || []) as unknown as Notification[];
     },
-    refetchInterval: 30_000, // poll every 30s
+    // Keep stale time low so fresh data loads immediately on focus
+    staleTime: 10_000,
   });
 }
 
