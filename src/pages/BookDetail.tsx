@@ -7,7 +7,8 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, BookOpen, Star, Calendar, Play, IndianRupee, Loader2, ShoppingCart, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Clock, BookOpen, Star, Calendar, Play, IndianRupee, Loader2, ShoppingCart, Check, Tag, X } from "lucide-react";
 import BookReviews from "@/components/BookReviews";
 import SocialShare from "@/components/SocialShare";
 import WishlistButton from "@/components/WishlistButton";
@@ -16,6 +17,7 @@ import { useHasPurchased, useInitiatePayment } from "@/hooks/usePurchases";
 import { useCart, useAddToCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useCoupon } from "@/hooks/useCoupon";
 
 export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +34,16 @@ export default function BookDetail() {
   const [paying, setPaying] = useState(false);
 
   const isInCart = cartItems?.some((item) => item.book_id === id);
+
+  // We initialize useCoupon with 0 and update when book is loaded
+  // priceAmount is derived after book normalization, so we track it via state
+  const [bookPrice, setBookPrice] = useState(0);
+  const {
+    couponCode, setCouponCode,
+    appliedCoupon, validating, couponError,
+    discount, finalAmount,
+    validateCoupon, removeCoupon, incrementUsage,
+  } = useCoupon(bookPrice);
 
   // Show toast on payment redirect
   useEffect(() => {
@@ -112,6 +124,9 @@ export default function BookDetail() {
         totalChapters: mockBook!.chapters.length,
         readCount: 0,
       };
+
+  // Sync price into coupon hook whenever book is determined
+  if (bookPrice !== book.priceAmount) setBookPrice(book.priceAmount);
 
   const formattedDate = new Date(book.publishedDate).toLocaleDateString("en-US", {
     year: "numeric",
@@ -264,60 +279,121 @@ export default function BookDetail() {
                     )}
                   </>
                 ) : (
-                  /* Premium book not purchased — show buy + cart */
-                  <>
-                    <Button
-                      size="lg"
-                      className="gap-2"
-                      disabled={paying}
-                      onClick={async () => {
-                        if (!user) { navigate("/auth"); return; }
-                        setPaying(true);
-                        try {
-                          await initiatePayment.mutateAsync({
-                            bookId: book.id,
-                            bookTitle: book.title,
-                            amount: book.priceAmount,
-                          });
-                          toast.success("Payment successful! You now have full access.");
-                        } catch {
-                          toast.error("Payment failed. Please try again.");
-                        } finally {
-                          setPaying(false);
-                        }
-                      }}
-                    >
-                      {paying ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <>
-                          <IndianRupee className="h-5 w-5" />
-                          Buy for ₹{book.priceAmount}
-                        </>
+                  /* Premium book not purchased — show coupon input + buy + cart */
+                  <div className="w-full space-y-4">
+                    {/* Coupon Code Input */}
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Enter coupon code"
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                            className="pl-9 font-mono uppercase"
+                            disabled={!!appliedCoupon}
+                            onKeyDown={(e) => { if (e.key === "Enter") validateCoupon(); }}
+                          />
+                        </div>
+                        {appliedCoupon ? (
+                          <Button variant="outline" size="sm" onClick={removeCoupon} className="gap-1 self-center">
+                            <X className="h-4 w-4" /> Remove
+                          </Button>
+                        ) : (
+                          <Button variant="outline" onClick={validateCoupon} disabled={!couponCode.trim() || validating} className="self-center">
+                            {validating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                          </Button>
+                        )}
+                      </div>
+                      {couponError && (
+                        <p className="text-sm text-destructive">{couponError}</p>
                       )}
-                    </Button>
+                      {appliedCoupon && (
+                        <div className="flex items-center gap-2 text-sm text-primary">
+                          <Check className="h-4 w-4" />
+                          <span>
+                            Coupon <strong>{appliedCoupon.code}</strong> applied! You save ₹{discount.toFixed(0)}.
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="gap-2"
-                      disabled={isInCart}
-                      onClick={() => {
-                        if (!user) { navigate("/auth"); return; }
-                        addToCart.mutate(book.id);
-                      }}
-                    >
-                      <ShoppingCart className="h-5 w-5" />
-                      {isInCart ? "In Cart" : "Buy Later"}
-                    </Button>
+                    {/* Price summary */}
+                    {appliedCoupon && (
+                      <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Original price</span>
+                          <span className="flex items-center"><IndianRupee className="h-3 w-3" />{book.priceAmount}</span>
+                        </div>
+                        <div className="flex justify-between text-primary">
+                          <span>Discount ({appliedCoupon.discount_type === "percentage" ? `${appliedCoupon.discount_value}%` : `₹${appliedCoupon.discount_value}`})</span>
+                          <span className="flex items-center">- <IndianRupee className="h-3 w-3" />{discount.toFixed(0)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-foreground border-t border-border pt-1">
+                          <span>Total</span>
+                          <span className="flex items-center"><IndianRupee className="h-3 w-3" />{finalAmount.toFixed(0)}</span>
+                        </div>
+                      </div>
+                    )}
 
-                    <Link to={readUrl}>
-                      <Button variant="ghost" size="lg" className="gap-2">
-                        <BookOpen className="h-5 w-5" />
-                        Preview Free Chapters
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        size="lg"
+                        className="gap-2"
+                        disabled={paying}
+                        onClick={async () => {
+                          if (!user) { navigate("/auth"); return; }
+                          setPaying(true);
+                          try {
+                            await initiatePayment.mutateAsync({
+                              bookId: book.id,
+                              bookTitle: book.title,
+                              amount: finalAmount,
+                            });
+                            if (appliedCoupon) await incrementUsage(appliedCoupon.id);
+                            toast.success("Payment successful! You now have full access.");
+                          } catch {
+                            toast.error("Payment failed. Please try again.");
+                          } finally {
+                            setPaying(false);
+                          }
+                        }}
+                      >
+                        {paying ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <>
+                            <IndianRupee className="h-5 w-5" />
+                            {appliedCoupon
+                              ? `Buy for ₹${finalAmount.toFixed(0)}`
+                              : `Buy for ₹${book.priceAmount}`}
+                          </>
+                        )}
                       </Button>
-                    </Link>
-                  </>
+
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="gap-2"
+                        disabled={isInCart}
+                        onClick={() => {
+                          if (!user) { navigate("/auth"); return; }
+                          addToCart.mutate(book.id);
+                        }}
+                      >
+                        <ShoppingCart className="h-5 w-5" />
+                        {isInCart ? "In Cart" : "Buy Later"}
+                      </Button>
+
+                      <Link to={readUrl}>
+                        <Button variant="ghost" size="lg" className="gap-2">
+                          <BookOpen className="h-5 w-5" />
+                          Preview Free Chapters
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
                 )}
               </div>
 
