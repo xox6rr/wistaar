@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, CheckCheck, Shield } from "lucide-react";
+import { Bell, Check, CheckCheck, Shield, BookOpen, ShoppingBag, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 
 const typeIcon: Record<string, React.ReactNode> = {
   admin_promotion: <Shield className="h-4 w-4 text-primary" />,
+  book_approved:   <BookOpen className="h-4 w-4 text-chart-2" />,
+  book_rejected:   <XCircle className="h-4 w-4 text-destructive" />,
+  book_purchased:  <ShoppingBag className="h-4 w-4 text-primary" />,
 };
 
 const defaultIcon = <Bell className="h-4 w-4 text-muted-foreground" />;
