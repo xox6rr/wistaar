@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_permissions: {
+        Row: {
+          can_approve_reject: boolean
+          can_manage_admins: boolean
+          can_manage_coupons: boolean
+          created_at: string
+          granted_by: string
+          id: string
+          is_super_admin: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_approve_reject?: boolean
+          can_manage_admins?: boolean
+          can_manage_coupons?: boolean
+          created_at?: string
+          granted_by: string
+          id?: string
+          is_super_admin?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_approve_reject?: boolean
+          can_manage_admins?: boolean
+          can_manage_coupons?: boolean
+          created_at?: string
+          granted_by?: string
+          id?: string
+          is_super_admin?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       book_chapters: {
         Row: {
           book_id: string
@@ -253,6 +289,51 @@ export type Database = {
           },
         ]
       }
+      coupon_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          min_purchase: number
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          discount_type?: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_purchase?: number
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_purchase?: number
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -368,6 +449,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_admin_by_email: {
+        Args: {
+          p_can_approve_reject?: boolean
+          p_can_manage_admins?: boolean
+          p_can_manage_coupons?: boolean
+          p_granted_by?: string
+          target_email: string
+        }
+        Returns: undefined
+      }
+      get_admins_with_emails: {
+        Args: never
+        Returns: {
+          can_approve_reject: boolean
+          can_manage_admins: boolean
+          can_manage_coupons: boolean
+          created_at: string
+          display_name: string
+          email: string
+          granted_by: string
+          id: string
+          is_super_admin: boolean
+          user_id: string
+        }[]
+      }
       has_purchased_book: {
         Args: { p_book_id: string; p_user_id: string }
         Returns: boolean
