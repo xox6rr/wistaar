@@ -64,6 +64,28 @@ export default function AdminManagement() {
         p_granted_by: user.id,
       });
       if (error) throw error;
+
+      // Find the new admin's user_id so we can send them a notification
+      const { data: adminsData } = await supabase.rpc('get_admins_with_emails' as any);
+      const newAdmin = (adminsData as any[])?.find(
+        (a: any) => a.email?.toLowerCase() === newEmail.trim().toLowerCase()
+      );
+
+      if (newAdmin?.user_id) {
+        const permList = [
+          permissions.can_approve_reject && 'approve/reject books',
+          permissions.can_manage_coupons && 'manage coupons',
+          permissions.can_manage_admins && 'manage admins',
+        ].filter(Boolean).join(', ');
+
+        await supabase.from('notifications' as any).insert({
+          user_id: newAdmin.user_id,
+          title: '🎉 You have been granted Admin access',
+          message: `You now have admin privileges on Wistaar. Permissions: ${permList || 'approve/reject books'}.`,
+          type: 'admin_promotion',
+        } as any);
+      }
+
       toast({ title: 'Admin added!', description: `${newEmail} now has admin access.` });
       setNewEmail('');
       setPermissions({ can_approve_reject: true, can_manage_coupons: false, can_manage_admins: false });
