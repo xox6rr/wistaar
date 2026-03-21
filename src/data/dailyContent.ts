@@ -122,30 +122,19 @@ function getDayOfYear(): number {
 }
 
 /**
- * Returns a unique set of paragraphs for a given chapter that changes daily.
- * Same day + same chapter = same content. Different day = different content.
+ * Returns a unique set of random paragraphs that change on every call/refresh.
  */
 export function getDailyContent(
-  chapterTitle: string,
-  bookTitle: string,
-  chapterNumber: number,
+  _chapterTitle: string,
+  _bookTitle: string,
+  _chapterNumber: number,
   paragraphCount: number = 10
 ): string[] {
-  const dayOfYear = getDayOfYear();
-  const year = new Date().getFullYear();
-  const daySeed = dayOfYear + year * 365;
-  const bookHash = hashString(bookTitle);
-  const seed = daySeed + chapterNumber * 137 + bookHash;
-
-  const rng = seededRandom(seed);
-
-  // Fisher-Yates shuffle with seeded RNG
   const indices = Array.from({ length: paragraphPool.length }, (_, i) => i);
   for (let i = indices.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
+    const j = Math.floor(Math.random() * (i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
-
   const count = Math.min(paragraphCount, paragraphPool.length);
   return indices.slice(0, count).map((i) => paragraphPool[i]);
 }
