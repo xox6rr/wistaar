@@ -38,7 +38,7 @@ export default function BookReader() {
   const [fontSize, setFontSize] = useState(17);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetControlsTimer = useCallback(() => {
     setShowControls(true);
