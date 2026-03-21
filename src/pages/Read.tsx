@@ -62,7 +62,7 @@ export default function Read() {
   
   const { progress, isLoading, saveProgress, isAuthenticated } = useReadingProgress(id);
   const { bookmarks, addBookmark, deleteBookmark } = useBookmarks(id);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
   const [bookmarkNote, setBookmarkNote] = useState("");
