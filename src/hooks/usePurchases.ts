@@ -84,18 +84,12 @@ export function useInitiatePayment() {
       if (error) throw error;
 
       // In-app notification for successful purchase
-      await supabase.from("book_purchases")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("book_id", bookId)
-        .maybeSingle(); // just to confirm it exists
-
-      await supabase.from("notifications" as any).insert({
+      await supabase.from("notifications").insert({
         user_id: user.id,
         title: `📖 "${bookTitle}" is now in your library!`,
         message: `You've successfully purchased "${bookTitle}". Happy reading!`,
         type: "book_purchased",
-      } as any);
+      });
 
       return { success: true };
     },

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsAuthor } from "@/hooks/useIsAuthor";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -20,6 +21,7 @@ import NotificationBell from "@/components/NotificationBell";
 const Navigation = () => {
   const { user, signOut, loading } = useAuth();
   const { isAdmin } = useIsAdmin();
+  const { isAuthor } = useIsAuthor();
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -54,6 +56,7 @@ const Navigation = () => {
     { to: "/explore", label: "Explore", icon: Compass },
     { to: "/library", label: "Library", requiresAuth: true, icon: Library },
     { to: "/publish", label: "Publish", icon: PenLine },
+    ...(isAuthor ? [{ to: "/author/dashboard", label: "My Books", requiresAuth: true, icon: BookOpen }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: Shield }] : []),
   ].filter((link) => !link.requiresAuth || user);
 

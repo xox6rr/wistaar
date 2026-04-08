@@ -44,8 +44,28 @@ export default function BookSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [hasAuthorRole, setHasAuthorRole] = useState<boolean | null>(null);
+
   useEffect(() => {
-    if (!loading && !user) navigate('/author/signup');
+    if (!loading && !user) {
+      navigate('/author/signup');
+      return;
+    }
+    if (user) {
+      supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'author')
+        .then(({ data }) => {
+          if (!data || data.length === 0) {
+            toast({ title: 'Author account required', description: 'Please sign up as an author first.', variant: 'destructive' });
+            navigate('/author/signup');
+          } else {
+            setHasAuthorRole(true);
+          }
+        });
+    }
   }, [user, loading]);
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
