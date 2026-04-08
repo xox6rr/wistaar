@@ -3,6 +3,8 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Shield, Users, TrendingUp, Zap, Globe } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsAuthor } from "@/hooks/useIsAuthor";
 
 const features = [
   {
@@ -45,6 +47,9 @@ const steps = [
 ];
 
 const Publish = () => {
+  const { user } = useAuth();
+  const { isAuthor } = useIsAuthor();
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -65,12 +70,24 @@ const Publish = () => {
             No gatekeepers. No compromise. Just your words, reaching the readers who need them.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/author/signup">
-              <Button size="lg">Start Publishing</Button>
-            </Link>
-            <Button variant="outline" size="lg">
-              Learn More
-            </Button>
+            {isAuthor ? (
+              <>
+                <Link to="/author/dashboard">
+                  <Button size="lg">Go to Dashboard</Button>
+                </Link>
+                <Link to="/author/submit">
+                  <Button variant="outline" size="lg">Submit New Book</Button>
+                </Link>
+              </>
+            ) : user ? (
+              <Link to="/author/signup">
+                <Button size="lg">Become an Author</Button>
+              </Link>
+            ) : (
+              <Link to="/author/signup">
+                <Button size="lg">Start Publishing</Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>

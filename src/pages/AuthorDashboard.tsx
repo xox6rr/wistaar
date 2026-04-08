@@ -51,11 +51,14 @@ export default function AuthorDashboard() {
       .eq('role', 'author');
 
     if (!roles || roles.length === 0) {
-      // Check if pending signup
+      // Check if pending signup or user already has submissions (backfill case)
       const pending = localStorage.getItem('pending_author_signup');
       if (pending) {
-        // Assign author role
-        await supabase.from('user_roles').insert({ user_id: user.id, role: 'author' as any });
+        // Assign author role idempotently
+        await supabase.from('user_roles').upsert(
+          { user_id: user.id, role: 'author' as any },
+          { onConflict: 'user_id,role' }
+        );
         const { name } = JSON.parse(pending);
         if (name) {
           await supabase.from('profiles').update({ display_name: name }).eq('user_id', user.id);
@@ -63,9 +66,25 @@ export default function AuthorDashboard() {
         localStorage.removeItem('pending_author_signup');
         setIsAuthor(true);
       } else {
-        toast({ title: 'Access denied', description: 'You need an author account to access this page.', variant: 'destructive' });
-        navigate('/author/signup');
-        return;
+        // Check if user has any existing submissions (they may have submitted before role enforcement)
+        const { data: existingSubs } = await supabase
+          .from('book_submissions')
+          .select('id')
+          .eq('author_id', user.id)
+          .limit(1);
+
+        if (existingSubs && existingSubs.length > 0) {
+          // Backfill author role
+          await supabase.from('user_roles').upsert(
+            { user_id: user.id, role: 'author' as any },
+            { onConflict: 'user_id,role' }
+          );
+          setIsAuthor(true);
+        } else {
+          toast({ title: 'Access denied', description: 'You need an author account to access this page.', variant: 'destructive' });
+          navigate('/author/signup');
+          return;
+        }
       }
     } else {
       setIsAuthor(true);

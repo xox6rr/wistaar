@@ -54,6 +54,7 @@ const Navigation = () => {
     { to: "/explore", label: "Explore", icon: Compass },
     { to: "/library", label: "Library", requiresAuth: true, icon: Library },
     { to: "/publish", label: "Publish", icon: PenLine },
+    ...(isAuthor ? [{ to: "/author/dashboard", label: "My Books", requiresAuth: true, icon: BookOpen }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: Shield }] : []),
   ].filter((link) => !link.requiresAuth || user);
 
