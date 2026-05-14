@@ -87,16 +87,13 @@ const Page = forwardRef<HTMLDivElement, {
   fontSize: number;
   bookTitle: string;
 }>(({ pageData, pageNumber, totalPages, fontSize, bookTitle }, ref) => {
-  const isChapterTitle = pageData.content === "";
-
   return (
     <div
       ref={ref}
       className="bg-[#faf8f5] dark:bg-[#1a1a1a] h-full w-full overflow-hidden shadow-inner"
       style={{ padding: "clamp(16px, 4%, 40px)" }}
     >
-      {isChapterTitle ? (
-        // Chapter title page
+      {pageData.kind === "title" ? (
         <div className="h-full flex flex-col items-center justify-center text-center">
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-6">
             Chapter {pageData.chapterNumber}
@@ -109,8 +106,20 @@ const Page = forwardRef<HTMLDivElement, {
           </h2>
           <div className="w-16 h-px bg-border mt-6" />
         </div>
+      ) : pageData.kind === "end" ? (
+        // Quiet end-of-chapter page — no toast, no confetti
+        <div className="h-full flex flex-col items-center justify-center text-center">
+          <span
+            className="font-serif text-2xl text-muted-foreground/50 mb-8 select-none"
+            aria-hidden="true"
+          >
+            ❦
+          </span>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
+            End of Chapter {pageData.chapterNumber}
+          </p>
+        </div>
       ) : (
-        // Content page
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/30">
