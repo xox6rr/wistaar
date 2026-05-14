@@ -212,7 +212,7 @@ const PageFlipBook = forwardRef<PageFlipBookRef, PageFlipBookProps>(
 
     const getChapterStartPage = useCallback(
       (chapterNumber: number) => {
-        return pages.findIndex((p) => p.chapterNumber === chapterNumber && p.content === "");
+        return pages.findIndex((p) => p.chapterNumber === chapterNumber && p.kind === "title");
       },
       [pages]
     );
