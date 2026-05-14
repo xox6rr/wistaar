@@ -20,8 +20,8 @@ interface PageFlipBookProps {
 function splitIntoPages(
   chapters: BookChapter[],
   charsPerPage: number
-): { chapterNumber: number; chapterTitle: string; content: string; pageInChapter: number; totalPagesInChapter: number }[] {
-  const pages: { chapterNumber: number; chapterTitle: string; content: string; pageInChapter: number; totalPagesInChapter: number }[] = [];
+): { chapterNumber: number; chapterTitle: string; content: string; pageInChapter: number; totalPagesInChapter: number; kind: "title" | "content" | "end" }[] {
+  const pages: { chapterNumber: number; chapterTitle: string; content: string; pageInChapter: number; totalPagesInChapter: number; kind: "title" | "content" | "end" }[] = [];
 
   for (const chapter of chapters) {
     // Add a title page for each chapter
@@ -31,6 +31,7 @@ function splitIntoPages(
       content: "",
       pageInChapter: 0,
       totalPagesInChapter: 0,
+      kind: "title",
     });
 
     const paragraphs = chapter.content.split(/\n\n+/);
@@ -49,7 +50,6 @@ function splitIntoPages(
       chapterPages.push(currentPageContent.trim());
     }
 
-    // Update chapter title page with total
     const titlePageIndex = pages.length - 1;
 
     for (let i = 0; i < chapterPages.length; i++) {
@@ -59,10 +59,21 @@ function splitIntoPages(
         content: chapterPages[i],
         pageInChapter: i + 1,
         totalPagesInChapter: chapterPages.length,
+        kind: "content",
       });
     }
 
     pages[titlePageIndex].totalPagesInChapter = chapterPages.length;
+
+    // Quiet end-of-chapter page — no popup, just a final page like a real book
+    pages.push({
+      chapterNumber: chapter.chapter_number,
+      chapterTitle: chapter.title,
+      content: "",
+      pageInChapter: chapterPages.length + 1,
+      totalPagesInChapter: chapterPages.length,
+      kind: "end",
+    });
   }
 
   return pages;
@@ -76,16 +87,13 @@ const Page = forwardRef<HTMLDivElement, {
   fontSize: number;
   bookTitle: string;
 }>(({ pageData, pageNumber, totalPages, fontSize, bookTitle }, ref) => {
-  const isChapterTitle = pageData.content === "";
-
   return (
     <div
       ref={ref}
       className="bg-[#faf8f5] dark:bg-[#1a1a1a] h-full w-full overflow-hidden shadow-inner"
       style={{ padding: "clamp(16px, 4%, 40px)" }}
     >
-      {isChapterTitle ? (
-        // Chapter title page
+      {pageData.kind === "title" ? (
         <div className="h-full flex flex-col items-center justify-center text-center">
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-6">
             Chapter {pageData.chapterNumber}
@@ -98,8 +106,20 @@ const Page = forwardRef<HTMLDivElement, {
           </h2>
           <div className="w-16 h-px bg-border mt-6" />
         </div>
+      ) : pageData.kind === "end" ? (
+        // Quiet end-of-chapter page — no toast, no confetti
+        <div className="h-full flex flex-col items-center justify-center text-center">
+          <span
+            className="font-serif text-2xl text-muted-foreground/50 mb-8 select-none"
+            aria-hidden="true"
+          >
+            ❦
+          </span>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
+            End of Chapter {pageData.chapterNumber}
+          </p>
+        </div>
       ) : (
-        // Content page
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-border/30">
@@ -192,7 +212,7 @@ const PageFlipBook = forwardRef<PageFlipBookRef, PageFlipBookProps>(
 
     const getChapterStartPage = useCallback(
       (chapterNumber: number) => {
-        return pages.findIndex((p) => p.chapterNumber === chapterNumber && p.content === "");
+        return pages.findIndex((p) => p.chapterNumber === chapterNumber && p.kind === "title");
       },
       [pages]
     );
