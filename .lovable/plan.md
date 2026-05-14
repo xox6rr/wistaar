@@ -1,63 +1,45 @@
-## Diagnosis
+# Quieter chapter transitions — feel like a real book
 
-Your Lovable preview works, only Vercel is broken. The screenshot shows:
-- HTML/text renders fine (React is running)
-- Serif font from Google Fonts loads
-- **No Tailwind utility classes are applied** (no layout, no colors, no spacing)
-- Dark background = browser default, not your ivory theme
+You're right: a popping "Chapter 4 complete 🎉" toast breaks immersion. A real book never congratulates you — the page itself just changes. Here's what I'd do instead of the confetti spec from the earlier prompt.
 
-This is **not** a Supabase or code problem. The project files (`vercel.json`, `package.json`, `vite.config.ts`, Tailwind setup) are all correct and Lovable builds them fine. The issue is **Vercel's project settings** — it's either skipping the Vite build or serving the wrong directory.
+## What to drop
 
-A secondary risk: Vercel almost certainly doesn't have your `VITE_SUPABASE_*` env vars, which will silently break auth/data fetching even after the styling is fixed.
+- No toast / sonner notification when a chapter ends.
+- No confetti, no emoji, no "X min read" popup.
+- No book-completion modal card with celebration.
 
-## Fix (no code changes — all Vercel dashboard)
+## What to add (all in-page, no overlays)
 
-This is a configuration fix on **vercel.com**, not in your code. Open your project on Vercel and do the following.
+1. **End-of-chapter page itself**
+   At the last page of each chapter, render a dedicated closing spread instead of a popup:
+   - A small centered ornament (a thin horizontal rule, or a single ❦ / ✦ glyph in muted ink)
+   - Below it, in small caps muted type: `End of Chapter 4`
+   - Nothing else. No buttons, no stats. The next flip naturally lands on the next chapter title page (which already exists).
 
-### Step 1 — Fix build settings
+2. **Chapter opener already feels like a book** — keep current chapter title page; just refine it:
+   - "Chapter 4" in tracked small-caps, hairline rule, then the chapter name in large serif. Generous top margin.
 
-Go to **Vercel → your project → Settings → General → Build & Development Settings**, click **Edit**, and set:
+3. **Subtle progress, not announcements**
+   - Keep the thin progress bar under the toolbar (already there).
+   - When a chapter completes, briefly *dim* the progress bar from accent → muted for 600ms then back. No text, no sound.
 
-| Field | Value |
-|---|---|
-| Framework Preset | **Vite** |
-| Build Command | `vite build` (or leave as default Override OFF) |
-| Output Directory | `dist` |
-| Install Command | `npm install` (default) |
-| Root Directory | `./` (leave blank/default) |
-| Node.js Version | 20.x |
+4. **Optional, off by default**: a soft paper-rustle SFX on the chapter-end flip only (not every page). Toggle in settings, default off.
 
-Save.
+## Files to change
 
-### Step 2 — Add environment variables
+- `src/components/reader/PageFlipBook.tsx`
+  - In `splitIntoPages`, append a synthetic "chapter end" page after each chapter's last content page (`kind: "chapter-end"`).
+  - In the page renderer, branch on `kind`: render the ornament + "End of Chapter N" block.
+- `src/pages/BookReader.tsx`
+  - Remove any planned toast/confetti hook. Add a tiny `useEffect` that, when `getCurrentChapter()` increments, triggers a 600ms CSS class on the progress bar (`data-chapter-pulse`).
+- `src/components/reader/ReaderToolbar.tsx`
+  - Add `data-chapter-pulse` styling on the progress bar (opacity dip via Tailwind `transition-opacity`).
+- No new deps. No `canvas-confetti`. No sonner calls from the reader.
 
-Go to **Settings → Environment Variables** and add these three (apply to **Production, Preview, and Development**):
+## Acceptance
 
-```text
-VITE_SUPABASE_URL              = https://jxlpxworxpjjhavtkrqu.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY  = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bHB4d29yeHBqamhhdnRrcnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0NTk2OTMsImV4cCI6MjA4MjAzNTY5M30.w3_iCHEbqRLzj8JF-hVuY9M7OfPxkYhszjGYd-VzD5Q
-VITE_SUPABASE_PROJECT_ID       = jxlpxworxpjjhavtkrqu
-```
+- Finishing a chapter shows only a quiet end-page; the next flip enters the next chapter.
+- No popup, no emoji, no sound (unless user opts in later).
+- Progress bar gives a one-time, sub-second visual acknowledgement and returns to normal.
 
-(These are public anon keys — safe to put in Vercel.)
-
-### Step 3 — Redeploy from scratch
-
-Go to **Deployments → latest deployment → ⋯ menu → Redeploy** and **uncheck** "Use existing Build Cache". This forces a clean rebuild with the new settings and env vars.
-
-### Step 4 — Verify
-
-Once the redeploy finishes:
-1. Open the Vercel URL in an incognito window (avoid cached CSS).
-2. The site should now show ivory background, terracotta accents, proper navigation bar, card layouts.
-3. Open DevTools → Network → filter by `.css` — you should see an `index-[hash].css` file ~50–100 KB loading with status 200.
-
-If CSS is still missing after this, check **Vercel → Deployments → [latest] → Build Logs** and look for any `tailwindcss` or `postcss` errors during `vite build`.
-
-## Why this happened
-
-When you imported/created the Vercel project, it likely auto-detected the wrong framework (e.g. "Other" with no build step), so it deployed your raw source files instead of the built `dist/` output. The browser then loads the React app via JS but never gets the compiled Tailwind CSS bundle — exactly what your screenshot shows.
-
-## What I will NOT change
-
-No code, no `vercel.json`, no Tailwind config — those are all correct. The fix is 100% in the Vercel dashboard. After you complete Steps 1–3, tell me if it's still broken and share the Vercel build log; I'll diagnose from there.
+Approve and I'll implement.
