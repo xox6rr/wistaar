@@ -20,8 +20,8 @@ interface PageFlipBookProps {
 function splitIntoPages(
   chapters: BookChapter[],
   charsPerPage: number
-): { chapterNumber: number; chapterTitle: string; content: string; pageInChapter: number; totalPagesInChapter: number }[] {
-  const pages: { chapterNumber: number; chapterTitle: string; content: string; pageInChapter: number; totalPagesInChapter: number }[] = [];
+): { chapterNumber: number; chapterTitle: string; content: string; pageInChapter: number; totalPagesInChapter: number; kind: "title" | "content" | "end" }[] {
+  const pages: { chapterNumber: number; chapterTitle: string; content: string; pageInChapter: number; totalPagesInChapter: number; kind: "title" | "content" | "end" }[] = [];
 
   for (const chapter of chapters) {
     // Add a title page for each chapter
@@ -31,6 +31,7 @@ function splitIntoPages(
       content: "",
       pageInChapter: 0,
       totalPagesInChapter: 0,
+      kind: "title",
     });
 
     const paragraphs = chapter.content.split(/\n\n+/);
@@ -49,7 +50,6 @@ function splitIntoPages(
       chapterPages.push(currentPageContent.trim());
     }
 
-    // Update chapter title page with total
     const titlePageIndex = pages.length - 1;
 
     for (let i = 0; i < chapterPages.length; i++) {
@@ -59,10 +59,21 @@ function splitIntoPages(
         content: chapterPages[i],
         pageInChapter: i + 1,
         totalPagesInChapter: chapterPages.length,
+        kind: "content",
       });
     }
 
     pages[titlePageIndex].totalPagesInChapter = chapterPages.length;
+
+    // Quiet end-of-chapter page — no popup, just a final page like a real book
+    pages.push({
+      chapterNumber: chapter.chapter_number,
+      chapterTitle: chapter.title,
+      content: "",
+      pageInChapter: chapterPages.length + 1,
+      totalPagesInChapter: chapterPages.length,
+      kind: "end",
+    });
   }
 
   return pages;
